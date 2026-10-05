@@ -122,7 +122,7 @@ export function useTypingEngine() {
   const activeSubLesson = activeLesson.subLessons.find(s => s.id === selectedSubLessonId) || activeLesson.subLessons[0];
   const themeConfig = THEME_CONFIGS[theme] || THEME_CONFIGS.monkey;
 
-  // Algoritma Fisher-Yates Shuffle untuk pengacakan murni tanpa pola
+  // Algoritma Fisher-Yates Shuffle
   const shuffleArray = (array) => {
     const arr = [...array];
     for (let i = arr.length - 1; i > 0; i--) {
@@ -132,7 +132,7 @@ export function useTypingEngine() {
     return arr;
   };
 
-  const generateCurriculumText = useCallback((subText, newKeys = [], wordCount = 50) => {
+  const generateCurriculumText = useCallback((subText, newKeys = [], wordCount = 100) => {
     let sourceChars = subText 
       ? Array.from(new Set(subText.replace(/\s+/g, '').split(''))) 
       : (newKeys.length > 0 ? newKeys : ['a', 's', 'd', 'f', 'j', 'k', 'l', ';']);
@@ -149,7 +149,7 @@ export function useTypingEngine() {
     return shuffleArray(words).join(' ').replace(/\s+/g, ' ').trim();
   }, []);
 
-  const generateWords = useCallback((count = 50) => {
+  const generateWords = useCallback((count = 100) => {
     const wordPool = WORDS_DIFFICULTY[difficulty] || WORDS_DIFFICULTY.medium;
     let res = [];
     
@@ -161,12 +161,13 @@ export function useTypingEngine() {
     return res.slice(0, count).join(' ').replace(/\s+/g, ' ').trim();
   }, [difficulty]);
 
+  // Pre-generate Buffer besar (120 kata) di awal
   const loadTextContent = useCallback(() => {
     let rawText = '';
     if (testCategory === 'curriculum') {
-      rawText = generateCurriculumText(activeSubLesson.text, activeLesson.newKeys, 50);
+      rawText = generateCurriculumText(activeSubLesson.text, activeLesson.newKeys, 120);
     } else {
-      rawText = modeType === 'words' ? generateWords(wordLimit) : generateWords(60);
+      rawText = modeType === 'words' ? generateWords(wordLimit) : generateWords(120);
     }
     return rawText.replace(/\s+/g, ' ').trim();
   }, [testCategory, activeSubLesson, activeLesson, modeType, wordLimit, generateCurriculumText, generateWords]);
@@ -393,13 +394,13 @@ export function useTypingEngine() {
     }
     setCompletedWordsCount(validWords);
 
-    // Auto-Append Stream (Mencegah Teks Habis/Kosong)
+    // Buffer Pre-fetch Threshold: Tambah 60 kata baru jika sisa karakter < 100
     const remainingChars = targetText.length - value.length;
-    if (remainingChars < 30) {
+    if (remainingChars < 100) {
       if (testCategory === 'free' && modeType === 'time') {
-        setTargetText((prev) => (prev + ' ' + generateWords(30)).replace(/\s+/g, ' ').trim());
+        setTargetText((prev) => (prev + ' ' + generateWords(60)).replace(/\s+/g, ' ').trim());
       } else if (testCategory === 'curriculum') {
-        setTargetText((prev) => (prev + ' ' + generateCurriculumText(activeSubLesson.text, activeLesson.newKeys, 30)).replace(/\s+/g, ' ').trim());
+        setTargetText((prev) => (prev + ' ' + generateCurriculumText(activeSubLesson.text, activeLesson.newKeys, 60)).replace(/\s+/g, ' ').trim());
       }
     }
 

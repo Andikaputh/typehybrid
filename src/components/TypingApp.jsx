@@ -33,11 +33,10 @@ export default function TypingApp() {
     state.difficulty, 
     state.selectedLessonId, 
     state.selectedSubLessonId, 
-    state.isFinished,
-    state.targetText
+    state.isFinished
   ]);
 
-  // Logika Auto-Scroll 3 Baris
+  // Logika Auto-Scroll 3 Baris Stabil (Hanya bergeser jika pindah baris)
   useEffect(() => {
     if (!activeWordRef.current || !wordsContainerRef.current) return;
 
@@ -53,9 +52,12 @@ export default function TypingApp() {
     }
   }, [state.input]);
 
+  // Reset scroll saat tes di-reset
   useEffect(() => {
-    setLineScrollOffset(0);
-  }, [state.targetText]);
+    if (!state.isStarted) {
+      setLineScrollOffset(0);
+    }
+  }, [state.isStarted]);
 
   return (
     <div className={`min-h-screen py-8 px-4 md:px-12 transition-colors duration-300 font-sans ${themeConfig.bg} ${themeConfig.textMain}`}>
