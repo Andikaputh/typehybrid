@@ -51,3 +51,8 @@ next-env.d.ts
 # OS System Junk
 ehthumbs.db
 Desktop.ini
+
+# AI Rules & Configs
+AGENTS.md
+CLAUDE.md
+.claude/
