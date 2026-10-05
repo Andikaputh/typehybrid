@@ -118,6 +118,7 @@ export function useTypingEngine() {
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
   const prevKeystrokesRef = useRef(0);
+  const lastRecordedSecRef = useRef(0);
 
   const activeLesson = TYPING_STUDY_CURRICULUM.find(l => l.id === selectedLessonId) || TYPING_STUDY_CURRICULUM[0];
   const activeSubLesson = activeLesson.subLessons.find(s => s.id === selectedSubLessonId) || activeLesson.subLessons[0];
@@ -162,7 +163,6 @@ export function useTypingEngine() {
     return res.slice(0, count).join(' ').replace(/\s+/g, ' ').trim();
   }, [difficulty]);
 
-  // Pre-generate Buffer besar (120 kata) di awal
   const loadTextContent = useCallback(() => {
     let rawText = '';
     if (testCategory === 'curriculum') {
@@ -177,6 +177,7 @@ export function useTypingEngine() {
     if (timerRef.current) clearInterval(timerRef.current);
     startTimeRef.current = null;
     prevKeystrokesRef.current = 0;
+    lastRecordedSecRef.current = 0;
     setInput('');
     setIsStarted(false);
     setElapsedSeconds(0);
@@ -265,7 +266,7 @@ export function useTypingEngine() {
     }
   }, [selectedLessonId, selectedSubLessonId, testCategory, modeType, timeLimit, wordLimit, difficulty, resetTest]);
 
-  // Kalkulasi Kata Benar Berbasis Karakter Sesuai Standar Monkeytype
+  // Kalkulasi Karakter Benar dari Kata Benar Sesuai Standar Monkeytype
   const calculateCorrectCharsFromCorrectWords = (typed, target) => {
     const typedArr = typed.trim().split(' ');
     const targetArr = target.trim().split(' ');
@@ -295,53 +296,57 @@ export function useTypingEngine() {
     return Math.max(0, Math.min(100, Math.round((1 - cv) * 100)));
   };
 
-  // Realtime Timer & Record Chart Data
+  // Realtime Timer dengan Presisi High-Frequency (200ms)
   useEffect(() => {
     if (isStarted && !isFinished) {
       if (!startTimeRef.current) {
         startTimeRef.current = Date.now();
         prevKeystrokesRef.current = 0;
+        lastRecordedSecRef.current = 0;
         setChartData([{ time: 0, wpm: 0, raw: 0, errors: null }]);
       }
 
       timerRef.current = setInterval(() => {
-        const seconds = Math.floor((Date.now() - startTimeRef.current) / 1000);
+        const now = Date.now();
+        const totalElapsedMs = now - startTimeRef.current;
+        const seconds = Math.floor(totalElapsedMs / 1000);
         setElapsedSeconds(seconds);
 
-        if (seconds > 0) {
-          const minutesSpent = seconds / 60;
+        if (totalElapsedMs > 0) {
+          const minutesSpent = totalElapsedMs / 60000;
           
-          // 1. Global Average WPM
+          // 1. WPM & Raw WPM Kumulatif
           const correctChars = calculateCorrectCharsFromCorrectWords(input, targetText);
           const currentWpm = Math.round((correctChars / 5) / minutesSpent);
-
-          // 2. Global Average Raw WPM (Card Stat)
           const cumRawWpm = Math.round((totalKeystrokes / 5) / minutesSpent);
-
-          // 3. Local Momentary Raw WPM (Grafik Line)
-          const deltaKeystrokes = totalKeystrokes - prevKeystrokesRef.current;
-          prevKeystrokesRef.current = totalKeystrokes;
-          const momentaryRawWpm = Math.round((deltaKeystrokes / 5) * 60);
-
-          const errCountAtSec = errorsPerSecond[seconds] || 0;
 
           setWpm(currentWpm);
           setRawWpm(cumRawWpm);
 
-          setChartData((prev) => {
-            if (prev.some(d => d.time === seconds)) return prev;
-            const updatedData = [
-              ...prev, 
-              { 
-                time: seconds, 
-                wpm: currentWpm, 
-                raw: momentaryRawWpm, 
-                errors: errCountAtSec > 0 ? errCountAtSec : null 
-              }
-            ];
-            setConsistency(calculateConsistency(updatedData));
-            return updatedData;
-          });
+          // 2. Catat titik grafik HANYA saat memasuki detik baru (1s, 2s, 3s...)
+          if (seconds > lastRecordedSecRef.current) {
+            lastRecordedSecRef.current = seconds;
+
+            const deltaKeystrokes = totalKeystrokes - prevKeystrokesRef.current;
+            prevKeystrokesRef.current = totalKeystrokes;
+            const momentaryRawWpm = Math.round((deltaKeystrokes / 5) * 60);
+            const errCountAtSec = errorsPerSecond[seconds] || 0;
+
+            setChartData((prev) => {
+              if (prev.some(d => d.time === seconds)) return prev;
+              const updatedData = [
+                ...prev, 
+                { 
+                  time: seconds, 
+                  wpm: currentWpm, 
+                  raw: momentaryRawWpm, 
+                  errors: errCountAtSec > 0 ? errCountAtSec : null 
+                }
+              ];
+              setConsistency(calculateConsistency(updatedData));
+              return updatedData;
+            });
+          }
         }
 
         if (testCategory === 'free' && modeType === 'time' && seconds >= timeLimit) {
@@ -349,7 +354,7 @@ export function useTypingEngine() {
           setIsStarted(false);
           clearInterval(timerRef.current);
         }
-      }, 1000);
+      }, 200);
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -371,6 +376,7 @@ export function useTypingEngine() {
       setIsStarted(true);
       startTimeRef.current = Date.now();
       prevKeystrokesRef.current = 0;
+      lastRecordedSecRef.current = 0;
       setChartData([{ time: 0, wpm: 0, raw: 0, errors: null }]);
     }
 
@@ -402,7 +408,7 @@ export function useTypingEngine() {
 
     setInput(value);
 
-    // Hitung jumlah kata selesai
+    // Hitung kata selesai
     const targetWords = targetText.split(' ');
     const typedWords = value.split(' ');
     let validWords = 0;
@@ -415,7 +421,7 @@ export function useTypingEngine() {
     }
     setCompletedWordsCount(validWords);
 
-    // Buffer Pre-fetch Threshold: Tambah 60 kata baru jika sisa karakter < 100
+    // Auto-Append Buffer
     const remainingChars = targetText.length - value.length;
     if (remainingChars < 100) {
       if (testCategory === 'free' && modeType === 'time') {
