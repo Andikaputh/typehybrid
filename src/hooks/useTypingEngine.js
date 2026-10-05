@@ -5,7 +5,6 @@ import { playClickSound } from '@/utils/audio';
 import { TYPING_STUDY_CURRICULUM } from '@/data/curriculumData';
 import { WORDS_DIFFICULTY, FINGER_MAP } from '@/constants/keyboard';
 
-// Dictionary Preset Tema Lengkap
 export const THEME_CONFIGS = {
   monkey: {
     id: 'monkey',
@@ -55,7 +54,7 @@ export const THEME_CONFIGS = {
   serika: {
     id: 'serika',
     name: 'Serika Light',
-    isLight: true, // Flag khusus tema terang
+    isLight: true,
     bg: 'bg-[#e1e1e1]',
     cardBg: 'bg-[#d1d0c5]',
     cardBorder: 'border-black/10',
@@ -65,7 +64,7 @@ export const THEME_CONFIGS = {
     textMain: 'text-[#323437]',
     subText: 'text-[#646669]',
     keyBg: 'bg-black/5',
-    keyText: 'text-[#323437]', // Teks tombol hitam/gelap agar terbaca tajam!
+    keyText: 'text-[#323437]',
   },
   cyber: {
     id: 'cyber',
@@ -103,8 +102,11 @@ export function useTypingEngine() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
 
+  // Monkeytype Metrics
   const [wpm, setWpm] = useState(0);
+  const [rawWpm, setRawWpm] = useState(0);
   const [accuracy, setAccuracy] = useState(100);
+  const [consistency, setConsistency] = useState(100);
   const [totalKeystrokes, setTotalKeystrokes] = useState(0);
   const [correctKeystrokes, setCorrectKeystrokes] = useState(0);
   const [completedWordsCount, setCompletedWordsCount] = useState(0);
@@ -120,7 +122,6 @@ export function useTypingEngine() {
   const activeSubLesson = activeLesson.subLessons.find(s => s.id === selectedSubLessonId) || activeLesson.subLessons[0];
   const themeConfig = THEME_CONFIGS[theme] || THEME_CONFIGS.monkey;
 
-  // Helper Generator Teks
   const generateCurriculumText = useCallback((subText, newKeys = [], wordCount = 40) => {
     let sourceChars = subText 
       ? Array.from(new Set(subText.replace(/\s+/g, '').split(''))) 
@@ -163,7 +164,9 @@ export function useTypingEngine() {
     setElapsedSeconds(0);
     setIsFinished(false);
     setWpm(0);
+    setRawWpm(0);
     setAccuracy(100);
+    setConsistency(100);
     setTotalKeystrokes(0);
     setCorrectKeystrokes(0);
     setCompletedWordsCount(0);
@@ -200,7 +203,9 @@ export function useTypingEngine() {
         if (parsedRes.isFinished) {
           setIsFinished(true);
           setWpm(parsedRes.wpm || 0);
+          setRawWpm(parsedRes.rawWpm || 0);
           setAccuracy(parsedRes.accuracy || 100);
+          setConsistency(parsedRes.consistency || 100);
           setChartData(parsedRes.chartData || []);
           setCompletedWordsCount(parsedRes.completedWordsCount || 0);
           setTotalKeystrokes(parsedRes.totalKeystrokes || 0);
@@ -242,7 +247,37 @@ export function useTypingEngine() {
     }
   }, [selectedLessonId, selectedSubLessonId, testCategory, modeType, timeLimit, wordLimit, difficulty, resetTest]);
 
-  // Timer Grafik Analitik
+  // Kalkulasi Kata Benar Berbasis Karakter Sesuai Standar Monkeytype
+  const calculateCorrectCharsFromCorrectWords = (typed, target) => {
+    const typedArr = typed.trim().split(' ');
+    const targetArr = target.trim().split(' ');
+    let validCharsCount = 0;
+
+    for (let i = 0; i < typedArr.length; i++) {
+      if (i < targetArr.length && typedArr[i] === targetArr[i]) {
+        validCharsCount += typedArr[i].length;
+        if (i < typedArr.length - 1) validCharsCount += 1; // hitung spasi jika kata benar
+      }
+    }
+    return validCharsCount;
+  };
+
+  // Rumus Koefisien Variasi untuk Consistency
+  const calculateConsistency = (dataSamples) => {
+    const rawValues = dataSamples.map(d => d.raw).filter(val => val > 0);
+    if (rawValues.length <= 1) return 100;
+
+    const mean = rawValues.reduce((a, b) => a + b, 0) / rawValues.length;
+    if (mean === 0) return 100;
+
+    const variance = rawValues.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / rawValues.length;
+    const stdDev = Math.sqrt(variance);
+    const cv = stdDev / mean;
+
+    return Math.max(0, Math.min(100, Math.round((1 - cv) * 100)));
+  };
+
+  // Realtime Timer & Record Chart Data
   useEffect(() => {
     if (isStarted && !isFinished) {
       if (!startTimeRef.current) {
@@ -255,14 +290,21 @@ export function useTypingEngine() {
         setElapsedSeconds(seconds);
 
         if (seconds > 0) {
-          const minSpent = seconds / 60;
-          const currentWpm = Math.round(completedWordsCount / minSpent);
-          const currentRaw = Math.round((totalKeystrokes / 5) / minSpent);
+          const minutesSpent = seconds / 60;
+          
+          const correctChars = calculateCorrectCharsFromCorrectWords(input, targetText);
+          const currentWpm = Math.round((correctChars / 5) / minutesSpent);
+          const currentRawWpm = Math.round((totalKeystrokes / 5) / minutesSpent);
           const errCountAtSec = errorsPerSecond[seconds] || 0;
+
+          setWpm(currentWpm);
+          setRawWpm(currentRawWpm);
 
           setChartData((prev) => {
             if (prev.some(d => d.time === seconds)) return prev;
-            return [...prev, { time: seconds, wpm: currentWpm, raw: currentRaw, errors: errCountAtSec > 0 ? errCountAtSec : null }];
+            const updatedData = [...prev, { time: seconds, wpm: currentWpm, raw: currentRawWpm, errors: errCountAtSec > 0 ? errCountAtSec : null }];
+            setConsistency(calculateConsistency(updatedData));
+            return updatedData;
           });
         }
 
@@ -276,7 +318,7 @@ export function useTypingEngine() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isStarted, isFinished, testCategory, modeType, timeLimit, completedWordsCount, totalKeystrokes, errorsPerSecond]);
+  }, [isStarted, isFinished, testCategory, modeType, timeLimit, input, targetText, totalKeystrokes, errorsPerSecond]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Tab') {
@@ -323,6 +365,7 @@ export function useTypingEngine() {
 
     setInput(value);
 
+    // Dynamic Word Auto-Append
     const targetWords = targetText.split(' ');
     const typedWords = value.split(' ');
     let validWords = 0;
@@ -333,11 +376,7 @@ export function useTypingEngine() {
     if (typedWords.length > 0 && typedWords[typedWords.length - 1] === targetWords[typedWords.length - 1]) {
       validWords++;
     }
-
     setCompletedWordsCount(validWords);
-
-    const minutesSpent = Math.max(elapsedSeconds, 1) / 60;
-    setWpm(Math.round(validWords / minutesSpent));
 
     if (value.length >= targetText.length) {
       if (modeType === 'words' || testCategory === 'curriculum') {
@@ -358,8 +397,8 @@ export function useTypingEngine() {
       testCategory, setTestCategory, modeType, setModeType, timeLimit, setTimeLimit,
       wordLimit, setWordLimit, difficulty, setDifficulty, selectedLessonId, setSelectedLessonId,
       selectedSubLessonId, setSelectedSubLessonId, soundEnabled, setSoundEnabled,
-      soundProfile, setSoundProfile, theme, setTheme, themeConfig, targetText, input, isFinished, wpm, accuracy,
-      elapsedSeconds, completedWordsCount, totalKeystrokes, correctKeystrokes,
+      soundProfile, setSoundProfile, theme, setTheme, themeConfig, targetText, input, isFinished, 
+      wpm, rawWpm, accuracy, consistency, elapsedSeconds, completedWordsCount, totalKeystrokes, correctKeystrokes,
       chartData, charErrors, activeLesson, activeSubLesson
     },
     actions: { handleInputChange, handleKeyDown, resetTest, getNextChar, activeFinger }

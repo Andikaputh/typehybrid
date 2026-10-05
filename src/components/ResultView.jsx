@@ -36,7 +36,7 @@ const RedCrossDot = (props) => {
 
 export default function ResultView({ state, onReset }) {
   const { 
-    wpm, accuracy, chartData, testCategory, activeLesson, 
+    wpm, rawWpm, accuracy, consistency, chartData, testCategory, activeLesson, 
     modeType, timeLimit, wordLimit, completedWordsCount, 
     correctKeystrokes, totalKeystrokes, elapsedSeconds, themeConfig
   } = state;
@@ -53,7 +53,7 @@ export default function ResultView({ state, onReset }) {
     ? chartData 
     : [
         { time: 0, wpm: 0, raw: 0, errors: null },
-        { time: Math.max(1, elapsedSeconds), wpm: wpm, raw: wpm, errors: null }
+        { time: Math.max(1, elapsedSeconds), wpm: wpm, raw: rawWpm, errors: null }
       ];
 
   const copyResultCardToClipboard = async () => {
@@ -62,12 +62,7 @@ export default function ResultView({ state, onReset }) {
       const blob = await toBlob(resultCardRef.current, {
         cacheBust: true,
         fontEmbedCSS: '', 
-        filter: (node) => {
-          if (node.tagName === 'LINK' && node.rel === 'stylesheet') {
-            return false;
-          }
-          return true;
-        },
+        filter: (node) => node.tagName !== 'LINK' || node.rel !== 'stylesheet',
       });
 
       if (blob) {
@@ -79,37 +74,53 @@ export default function ResultView({ state, onReset }) {
       }
     } catch (err) {
       console.error('Gagal menyalin gambar:', err);
-      alert('Tidak dapat menyalin kartu hasil ke clipboard karena proteksi CORS browser.');
+      alert('Tidak dapat menyalin kartu hasil ke clipboard.');
     }
   };
 
+  const incorrectKeystrokes = totalKeystrokes - correctKeystrokes;
+
   return (
     <div className="py-6 space-y-6 animate-fade-in">
-      {/* Dynamic Theme Card Container */}
       <div 
         ref={resultCardRef}
         className={`${themeConfig.cardBg} p-8 rounded-3xl border ${themeConfig.cardBorder} space-y-6 shadow-2xl transition-colors duration-300`}
       >
-        <div className="flex flex-col md:flex-row items-center gap-4">
+        <div className="flex flex-col md:flex-row items-center gap-8">
           
-          {/* Big Display WPM & ACC */}
-          <div className="space-y-4 shrink-0 border-b md:border-b-0 md:border-r border-white/10 pb-4 md:pb-0 md:pr-6">
+          {/* Main Displays: WPM, ACC, RAW, CONSISTENCY */}
+          <div className="grid grid-cols-2 md:grid-cols-1 gap-6 shrink-0 border-b md:border-b-0 md:border-r border-white/10 pb-6 md:pb-0 md:pr-8">
             <div>
               <div className="text-xs opacity-50 uppercase tracking-widest font-mono">wpm</div>
-              <div className="text-6xl md:text-7xl font-black font-mono leading-none transition-colors duration-300" style={{ color: themeConfig.primary }}>
+              <div className="text-5xl md:text-6xl font-black font-mono leading-none transition-colors duration-300" style={{ color: themeConfig.primary }}>
                 {wpm}
               </div>
             </div>
+
             <div>
               <div className="text-xs opacity-50 uppercase tracking-widest font-mono">acc</div>
-              <div className={`text-5xl md:text-6xl font-black font-mono leading-none ${themeConfig.textMain}`}>
+              <div className={`text-4xl md:text-5xl font-black font-mono leading-none ${themeConfig.textMain}`}>
                 {accuracy}%
+              </div>
+            </div>
+
+            <div>
+              <div className="text-xs opacity-50 uppercase tracking-widest font-mono">raw</div>
+              <div className={`text-3xl md:text-4xl font-bold font-mono leading-none opacity-80 ${themeConfig.textMain}`}>
+                {rawWpm}
+              </div>
+            </div>
+
+            <div>
+              <div className="text-xs opacity-50 uppercase tracking-widest font-mono">consistency</div>
+              <div className={`text-3xl md:text-4xl font-bold font-mono leading-none opacity-80 ${themeConfig.textMain}`}>
+                {consistency}%
               </div>
             </div>
           </div>
 
-          {/* Area Grafik */}
-          <div className="flex-1 w-full h-[230px]">
+          {/* Area Grafik Analytics */}
+          <div className="flex-1 w-full h-[260px]">
             {isMounted ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart 
@@ -162,7 +173,6 @@ export default function ResultView({ state, onReset }) {
 
                   <Tooltip content={<CustomTooltip primaryColor={themeConfig.primary} />} />
                   
-                  {/* Garis WPM Utama Mengikuti Warna Tema Active */}
                   <Line 
                     yAxisId="left"
                     type="monotone" 
@@ -205,7 +215,7 @@ export default function ResultView({ state, onReset }) {
 
         </div>
 
-        {/* Info Statistik Tambahan */}
+        {/* Extended Stats Bar */}
         <div className="flex flex-wrap justify-between items-center pt-4 border-t border-white/10 text-xs font-mono opacity-80 gap-4">
           <div>
             <span className="opacity-50 block">test type</span>
@@ -214,15 +224,17 @@ export default function ResultView({ state, onReset }) {
             </span>
           </div>
           <div>
-            <span className="opacity-50 block">kata berhasil</span>
+            <span className="opacity-50 block">characters</span>
+            <span className="font-bold">
+              <span style={{ color: themeConfig.primary }}>{correctKeystrokes}</span> / <span className="text-rose-400">{incorrectKeystrokes}</span>
+            </span>
+          </div>
+          <div>
+            <span className="opacity-50 block">completed words</span>
             <span className="font-bold">{completedWordsCount} Kata</span>
           </div>
           <div>
-            <span className="opacity-50 block">karakter benar / salah</span>
-            <span className="font-bold">{correctKeystrokes} / <span className="text-rose-400">{totalKeystrokes - correctKeystrokes}</span></span>
-          </div>
-          <div>
-            <span className="opacity-50 block">total durasi</span>
+            <span className="opacity-50 block">time</span>
             <span className="font-bold">{elapsedSeconds}s</span>
           </div>
         </div>
