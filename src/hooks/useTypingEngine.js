@@ -268,14 +268,17 @@ export function useTypingEngine() {
 
   // Kalkulasi Karakter Benar dari Kata Benar Sesuai Standar Monkeytype
   const calculateCorrectCharsFromCorrectWords = (typed, target) => {
-    const typedArr = typed.trim().split(' ');
-    const targetArr = target.trim().split(' ');
+    const typedArr = typed.split(' ');
+    const targetArr = target.split(' ');
     let validCharsCount = 0;
 
     for (let i = 0; i < typedArr.length; i++) {
       if (i < targetArr.length && typedArr[i] === targetArr[i]) {
         validCharsCount += typedArr[i].length;
-        if (i < typedArr.length - 1) validCharsCount += 1;
+        // Hitung spasi jika bukan kata terakhir atau jika pengguna menekan spasi setelah kata tersebut
+        if (i < typedArr.length - 1 || typed.endsWith(' ')) {
+          validCharsCount += 1;
+        }
       }
     }
     return validCharsCount;
@@ -315,7 +318,6 @@ export function useTypingEngine() {
         if (totalElapsedMs > 0) {
           const minutesSpent = totalElapsedMs / 60000;
           
-          // 1. WPM & Raw WPM Kumulatif
           const correctChars = calculateCorrectCharsFromCorrectWords(input, targetText);
           const currentWpm = Math.round((correctChars / 5) / minutesSpent);
           const cumRawWpm = Math.round((totalKeystrokes / 5) / minutesSpent);
@@ -323,7 +325,7 @@ export function useTypingEngine() {
           setWpm(currentWpm);
           setRawWpm(cumRawWpm);
 
-          // 2. Catat titik grafik HANYA saat memasuki detik baru (1s, 2s, 3s...)
+          // Catat titik grafik HANYA saat memasuki detik baru (1s, 2s, 3s...)
           if (seconds > lastRecordedSecRef.current) {
             lastRecordedSecRef.current = seconds;
 
@@ -371,14 +373,18 @@ export function useTypingEngine() {
   const handleInputChange = (e) => {
     if (isFinished) return;
     const value = e.target.value;
+    const now = Date.now();
 
     if (!isStarted) {
       setIsStarted(true);
-      startTimeRef.current = Date.now();
+      startTimeRef.current = now;
       prevKeystrokesRef.current = 0;
       lastRecordedSecRef.current = 0;
       setChartData([{ time: 0, wpm: 0, raw: 0, errors: null }]);
     }
+
+    const currentTotalKeystrokes = totalKeystrokes + (value.length > input.length ? 1 : 0);
+    let currentCorrectKeystrokes = correctKeystrokes;
 
     if (value.length > input.length) {
       const charIndex = value.length - 1;
@@ -386,13 +392,9 @@ export function useTypingEngine() {
       const expectedChar = targetText[charIndex];
       const isCorrect = addedChar === expectedChar;
 
-      const newTotal = totalKeystrokes + 1;
-      const newCorrect = correctKeystrokes + (isCorrect ? 1 : 0);
-
-      setTotalKeystrokes(newTotal);
-
       if (isCorrect) {
-        setCorrectKeystrokes(newCorrect);
+        currentCorrectKeystrokes += 1;
+        setCorrectKeystrokes(currentCorrectKeystrokes);
       } else {
         const curSec = Math.max(1, elapsedSeconds);
         setErrorsPerSecond((prev) => ({ ...prev, [curSec]: (prev[curSec] || 0) + 1 }));
@@ -402,11 +404,23 @@ export function useTypingEngine() {
         }));
       }
 
-      setAccuracy(newTotal > 0 ? Math.round((newCorrect / newTotal) * 100) : 100);
+      setTotalKeystrokes(currentTotalKeystrokes);
+      setAccuracy(currentTotalKeystrokes > 0 ? Math.round((currentCorrectKeystrokes / currentTotalKeystrokes) * 100) : 100);
       playClickSound(!isCorrect, soundEnabled, soundProfile);
     }
 
     setInput(value);
+
+    // Update WPM & Raw WPM Real-time langsung dari keystroke
+    const elapsedMs = startTimeRef.current ? Math.max(now - startTimeRef.current, 100) : 100;
+    const minutesSpent = elapsedMs / 60000;
+
+    const correctChars = calculateCorrectCharsFromCorrectWords(value, targetText);
+    const currentWpm = Math.round((correctChars / 5) / minutesSpent);
+    const cumRawWpm = Math.round((currentTotalKeystrokes / 5) / minutesSpent);
+
+    setWpm(currentWpm);
+    setRawWpm(cumRawWpm);
 
     // Hitung kata selesai
     const targetWords = targetText.split(' ');
