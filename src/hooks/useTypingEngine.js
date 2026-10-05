@@ -117,6 +117,7 @@ export function useTypingEngine() {
 
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
+  const prevKeystrokesRef = useRef(0);
 
   const activeLesson = TYPING_STUDY_CURRICULUM.find(l => l.id === selectedLessonId) || TYPING_STUDY_CURRICULUM[0];
   const activeSubLesson = activeLesson.subLessons.find(s => s.id === selectedSubLessonId) || activeLesson.subLessons[0];
@@ -175,6 +176,7 @@ export function useTypingEngine() {
   const resetTest = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     startTimeRef.current = null;
+    prevKeystrokesRef.current = 0;
     setInput('');
     setIsStarted(false);
     setElapsedSeconds(0);
@@ -298,6 +300,7 @@ export function useTypingEngine() {
     if (isStarted && !isFinished) {
       if (!startTimeRef.current) {
         startTimeRef.current = Date.now();
+        prevKeystrokesRef.current = 0;
         setChartData([{ time: 0, wpm: 0, raw: 0, errors: null }]);
       }
 
@@ -308,17 +311,34 @@ export function useTypingEngine() {
         if (seconds > 0) {
           const minutesSpent = seconds / 60;
           
+          // 1. Global Average WPM
           const correctChars = calculateCorrectCharsFromCorrectWords(input, targetText);
           const currentWpm = Math.round((correctChars / 5) / minutesSpent);
-          const currentRawWpm = Math.round((totalKeystrokes / 5) / minutesSpent);
+
+          // 2. Global Average Raw WPM (Card Stat)
+          const cumRawWpm = Math.round((totalKeystrokes / 5) / minutesSpent);
+
+          // 3. Local Momentary Raw WPM (Grafik Line)
+          const deltaKeystrokes = totalKeystrokes - prevKeystrokesRef.current;
+          prevKeystrokesRef.current = totalKeystrokes;
+          const momentaryRawWpm = Math.round((deltaKeystrokes / 5) * 60);
+
           const errCountAtSec = errorsPerSecond[seconds] || 0;
 
           setWpm(currentWpm);
-          setRawWpm(currentRawWpm);
+          setRawWpm(cumRawWpm);
 
           setChartData((prev) => {
             if (prev.some(d => d.time === seconds)) return prev;
-            const updatedData = [...prev, { time: seconds, wpm: currentWpm, raw: currentRawWpm, errors: errCountAtSec > 0 ? errCountAtSec : null }];
+            const updatedData = [
+              ...prev, 
+              { 
+                time: seconds, 
+                wpm: currentWpm, 
+                raw: momentaryRawWpm, 
+                errors: errCountAtSec > 0 ? errCountAtSec : null 
+              }
+            ];
             setConsistency(calculateConsistency(updatedData));
             return updatedData;
           });
@@ -329,7 +349,7 @@ export function useTypingEngine() {
           setIsStarted(false);
           clearInterval(timerRef.current);
         }
-      }, 200);
+      }, 1000);
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -350,6 +370,7 @@ export function useTypingEngine() {
     if (!isStarted) {
       setIsStarted(true);
       startTimeRef.current = Date.now();
+      prevKeystrokesRef.current = 0;
       setChartData([{ time: 0, wpm: 0, raw: 0, errors: null }]);
     }
 
