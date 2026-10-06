@@ -9,7 +9,7 @@ const CustomTooltip = ({ active, payload, label, primaryColor }) => {
   if (active && payload && payload.length) {
     const errorData = payload.find(p => p.dataKey === 'errors');
     return (
-      <div className="bg-[#18191a] border border-white/15 p-2.5 rounded-lg font-mono text-xs shadow-2xl space-y-1">
+      <div className="bg-[#18191a] border border-white/15 p-2.5 rounded-lg font-mono text-xs shadow-2xl space-y-1 text-white">
         <div className="text-white/40 border-b border-white/10 pb-1 mb-1 font-bold">Detik ke-{label}s</div>
         <div className="font-bold" style={{ color: primaryColor }}>WPM: {payload[0]?.value}</div>
         <div className="opacity-70" style={{ color: primaryColor }}>Raw: {payload[1]?.value}</div>
@@ -61,6 +61,7 @@ export default function ResultView({ state, onReset }) {
     try {
       const blob = await toBlob(resultCardRef.current, {
         cacheBust: true,
+        pixelRatio: 2,
         fontEmbedCSS: '', 
         filter: (node) => node.tagName !== 'LINK' || node.rel !== 'stylesheet',
       });

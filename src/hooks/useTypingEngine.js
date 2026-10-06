@@ -97,9 +97,9 @@ export function useTypingEngine() {
   const [theme, setTheme] = useState('monkey');
 
   // Core Engine States
-  const [words, setWords] = useState([]); // Array kata target
+  const [words, setWords] = useState([]);
   const [currentWordIdx, setCurrentWordIdx] = useState(0);
-  const [typedWords, setTypedWords] = useState([]); // Array string kata yang pernah/sedang diketik
+  const [typedWords, setTypedWords] = useState([]);
   const [isStarted, setIsStarted] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
@@ -120,6 +120,23 @@ export function useTypingEngine() {
   const startTimeRef = useRef(null);
   const lastRecordedSecRef = useRef(0);
   const prevTotalRawCharsRef = useRef(0);
+
+  // Refs untuk mencegah stale closure di dalam timer interval
+  const wordsRef = useRef(words);
+  const typedWordsRef = useRef(typedWords);
+  const errorsPerSecondRef = useRef(errorsPerSecond);
+
+  useEffect(() => {
+    wordsRef.current = words;
+  }, [words]);
+
+  useEffect(() => {
+    typedWordsRef.current = typedWords;
+  }, [typedWords]);
+
+  useEffect(() => {
+    errorsPerSecondRef.current = errorsPerSecond;
+  }, [errorsPerSecond]);
 
   const activeLesson = TYPING_STUDY_CURRICULUM.find(l => l.id === selectedLessonId) || TYPING_STUDY_CURRICULUM[0];
   const activeSubLesson = activeLesson.subLessons.find(s => s.id === selectedSubLessonId) || activeLesson.subLessons[0];
@@ -323,7 +340,7 @@ export function useTypingEngine() {
 
         if (totalElapsedMs > 0) {
           const minutesSpent = totalElapsedMs / 60000;
-          const { correctCharsFromCorrectWords, totalRawChars, charStats: currentStats, accuracy: currentAcc, completedWords } = evaluateMetrics(words, typedWords);
+          const { correctCharsFromCorrectWords, totalRawChars, charStats: currentStats, accuracy: currentAcc, completedWords } = evaluateMetrics(wordsRef.current, typedWordsRef.current);
 
           const currentWpm = Math.round((correctCharsFromCorrectWords / 5) / minutesSpent);
           const cumRawWpm = Math.round((totalRawChars / 5) / minutesSpent);
@@ -339,7 +356,7 @@ export function useTypingEngine() {
             const deltaRawChars = totalRawChars - prevTotalRawCharsRef.current;
             prevTotalRawCharsRef.current = totalRawChars;
             const momentaryRawWpm = Math.round((deltaRawChars / 5) * 60);
-            const errCountAtSec = errorsPerSecond[seconds] || 0;
+            const errCountAtSec = errorsPerSecondRef.current[seconds] || 0;
 
             setChartData((prev) => {
               if (prev.some(d => d.time === seconds)) return prev;
@@ -363,7 +380,7 @@ export function useTypingEngine() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isStarted, isFinished, testCategory, modeType, timeLimit, words, typedWords, errorsPerSecond, evaluateMetrics]);
+  }, [isStarted, isFinished, testCategory, modeType, timeLimit, evaluateMetrics]);
 
   // Handler Tombol Keyboard
   const handleKeyDown = (e) => {
@@ -446,6 +463,7 @@ export function useTypingEngine() {
 
       playClickSound(!isCorrect, soundEnabled, soundProfile);
 
+      // Cek Selesai Mode Words
       if (testCategory === 'free' && modeType === 'words') {
         const isLastWord = currentWordIdx + 1 >= wordLimit;
         const isWordFullyTyped = nextTyped.length >= currentWord.length;
