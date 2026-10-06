@@ -5,16 +5,16 @@ import { RotateCcw, Image as ImageIcon, Check } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Label } from 'recharts';
 import { toBlob } from 'html-to-image';
 
-const CustomTooltip = ({ active, payload, label, primaryColor }) => {
+const CustomTooltip = ({ active, payload, label, primaryColor, isLight }) => {
   if (active && payload && payload.length) {
     const errorData = payload.find(p => p.dataKey === 'errors');
     return (
-      <div className="bg-[#18191a] border border-white/15 p-2.5 rounded-lg font-mono text-xs shadow-2xl space-y-1 text-white">
-        <div className="text-white/40 border-b border-white/10 pb-1 mb-1 font-bold">Detik ke-{label}s</div>
+      <div className={`${isLight ? 'bg-[#d1d0c5] border-black/20 text-[#323437]' : 'bg-[#18191a] border-white/15 text-white'} p-2.5 rounded-lg font-mono text-xs shadow-2xl space-y-1`}>
+        <div className={`${isLight ? 'text-black/50 border-black/10' : 'text-white/40 border-white/10'} border-b pb-1 mb-1 font-bold`}>Detik ke-{label}s</div>
         <div className="font-bold" style={{ color: primaryColor }}>WPM: {payload[0]?.value}</div>
         <div className="opacity-70" style={{ color: primaryColor }}>Raw: {payload[1]?.value}</div>
         {errorData && errorData.value !== null && errorData.value !== undefined && (
-          <div className="text-rose-400 font-bold flex items-center gap-1 mt-1">
+          <div className="text-rose-500 font-bold flex items-center gap-1 mt-1">
             <span>✖ {errorData.value} Kesalahan pada detik ini</span>
           </div>
         )}
@@ -24,12 +24,12 @@ const CustomTooltip = ({ active, payload, label, primaryColor }) => {
   return null;
 };
 
-const BurstTooltip = ({ active, payload, primaryColor }) => {
+const BurstTooltip = ({ active, payload, primaryColor, isLight }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="bg-[#18191a] border border-white/15 p-2.5 rounded-lg font-mono text-xs shadow-2xl space-y-1 text-white">
-        <div className="text-white/40 border-b border-white/10 pb-1 font-bold">Kata: "{data.word}"</div>
+      <div className={`${isLight ? 'bg-[#d1d0c5] border-black/20 text-[#323437]' : 'bg-[#18191a] border-white/15 text-white'} p-2.5 rounded-lg font-mono text-xs shadow-2xl space-y-1`}>
+        <div className={`${isLight ? 'text-black/50 border-black/10' : 'text-white/40 border-white/10'} border-b pb-1 font-bold`}>Kata: "{data.word}"</div>
         <div className="font-bold" style={{ color: primaryColor }}>Burst Speed: {data.burst} WPM</div>
       </div>
     );
@@ -62,6 +62,15 @@ export default function ResultView({ state, onReset }) {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  const isLight = themeConfig.isLight;
+
+  // Warna-warna UI adaptif tema
+  const strokeColor = isLight ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)';
+  const gridColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.05)';
+  const subTextColor = isLight ? 'text-black/60' : 'text-white/50';
+  const labelColor = isLight ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.35)';
+  const dividerColor = isLight ? 'border-black/10' : 'border-white/10';
 
   const safeChartData = chartData && chartData.length >= 2 
     ? chartData 
@@ -104,16 +113,16 @@ export default function ResultView({ state, onReset }) {
         <div className="flex flex-col md:flex-row items-center gap-8">
           
           {/* Main Displays: WPM, ACC, RAW, CONSISTENCY, BURST */}
-          <div className="grid grid-cols-2 md:grid-cols-1 gap-5 shrink-0 border-b md:border-b-0 md:border-r border-white/10 pb-6 md:pb-0 md:pr-8">
+          <div className={`grid grid-cols-2 md:grid-cols-1 gap-5 shrink-0 border-b md:border-b-0 md:border-r ${dividerColor} pb-6 md:pb-0 md:pr-8`}>
             <div>
-              <div className="text-xs opacity-50 uppercase tracking-widest font-mono">wpm</div>
+              <div className={`text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>wpm</div>
               <div className="text-5xl md:text-6xl font-black font-mono leading-none transition-colors duration-300" style={{ color: themeConfig.primary }}>
                 {wpm}
               </div>
             </div>
 
             <div>
-              <div className="text-xs opacity-50 uppercase tracking-widest font-mono font-bold">acc</div>
+              <div className={`text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>acc</div>
               <div className={`text-4xl md:text-5xl font-black font-mono leading-none ${themeConfig.textMain}`}>
                 {accuracy}%
               </div>
@@ -121,24 +130,24 @@ export default function ResultView({ state, onReset }) {
 
             <div className="grid grid-cols-3 md:grid-cols-1 gap-4">
               <div>
-                <div className="text-xs opacity-50 uppercase tracking-widest font-mono">raw</div>
-                <div className={`text-2xl md:text-3xl font-bold font-mono leading-none opacity-80 ${themeConfig.textMain}`}>
+                <div className={`text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>raw</div>
+                <div className={`text-2xl md:text-3xl font-bold font-mono leading-none ${themeConfig.textMain}`}>
                   {rawWpm}
                 </div>
               </div>
 
               <div>
-                <div className="text-xs opacity-50 uppercase tracking-widest font-mono">consistency</div>
-                <div className={`text-2xl md:text-3xl font-bold font-mono leading-none opacity-80 ${themeConfig.textMain}`}>
+                <div className={`text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>consistency</div>
+                <div className={`text-2xl md:text-3xl font-bold font-mono leading-none ${themeConfig.textMain}`}>
                   {consistency}%
                 </div>
               </div>
 
               <div>
-                <div className="text-xs opacity-50 uppercase tracking-widest font-mono text-amber-400 font-bold">
+                <div className={`text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>
                   burst
                 </div>
-                <div className="text-2xl md:text-3xl font-bold font-mono leading-none text-amber-400">
+                <div className="text-2xl md:text-3xl font-bold font-mono leading-none transition-colors duration-300" style={{ color: themeConfig.primary }}>
                   {burstWpm}
                 </div>
               </div>
@@ -148,16 +157,28 @@ export default function ResultView({ state, onReset }) {
           {/* Area Grafik Analytics */}
           <div className="flex-1 w-full space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/10 text-xs font-mono">
+              <div className={`flex items-center gap-2 ${isLight ? 'bg-black/5 border-black/10' : 'bg-white/5 border-white/10'} p-1 rounded-xl border text-xs font-mono`}>
                 <button
                   onClick={() => setActiveTab('wpm')}
-                  className={`px-3 py-1 rounded-lg transition-all ${activeTab === 'wpm' ? 'bg-white/15 font-bold text-white' : 'opacity-50 hover:opacity-100'}`}
+                  className={`px-3 py-1 rounded-lg transition-all ${
+                    activeTab === 'wpm' 
+                      ? `${isLight ? 'bg-black/15 text-black' : 'bg-white/15 text-white'} font-bold` 
+                      : `${subTextColor} hover:opacity-100`
+                  }`}
                 >
                   WPM & Raw
                 </button>
                 <button
                   onClick={() => setActiveTab('burst')}
-                  className={`px-3 py-1 rounded-lg transition-all ${activeTab === 'burst' ? 'bg-amber-500/20 text-amber-300 font-bold' : 'opacity-50 hover:opacity-100'}`}
+                  className={`px-3 py-1 rounded-lg transition-all font-bold ${
+                    activeTab === 'burst' 
+                      ? 'shadow-sm' 
+                      : `${subTextColor} hover:opacity-100`
+                  }`}
+                  style={{
+                    backgroundColor: activeTab === 'burst' ? `${themeConfig.primary}33` : 'transparent',
+                    color: activeTab === 'burst' ? themeConfig.primary : undefined
+                  }}
                 >
                   Burst per Kata
                 </button>
@@ -173,18 +194,18 @@ export default function ResultView({ state, onReset }) {
                       margin={{ top: 15, right: 0, left: -10, bottom: 0 }}
                       className="font-mono"
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                      <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                       
                       <XAxis 
                         dataKey="time" 
-                        stroke="rgba(255,255,255,0.3)" 
+                        stroke={strokeColor} 
                         fontSize={11} 
                         tickLine={false} 
                       />
                       
                       <YAxis 
                         yAxisId="left"
-                        stroke="rgba(255,255,255,0.3)" 
+                        stroke={strokeColor} 
                         fontSize={11} 
                         tickLine={false} 
                         domain={[0, 'auto']} 
@@ -194,14 +215,14 @@ export default function ResultView({ state, onReset }) {
                           angle={-90} 
                           position="insideLeft" 
                           offset={12}
-                          style={{ textAnchor: 'middle', fill: 'rgba(255,255,255,0.35)', fontSize: '11px', fontFamily: 'monospace' }} 
+                          style={{ textAnchor: 'middle', fill: labelColor, fontSize: '11px', fontFamily: 'monospace' }} 
                         />
                       </YAxis>
 
                       <YAxis 
                         yAxisId="right"
                         orientation="right"
-                        stroke="rgba(255,255,255,0.3)" 
+                        stroke={strokeColor} 
                         fontSize={11} 
                         tickLine={false} 
                         domain={[0, 'auto']}
@@ -212,11 +233,11 @@ export default function ResultView({ state, onReset }) {
                           angle={90} 
                           position="insideRight" 
                           offset={12}
-                          style={{ textAnchor: 'middle', fill: 'rgba(255,255,255,0.35)', fontSize: '11px', fontFamily: 'monospace' }} 
+                          style={{ textAnchor: 'middle', fill: labelColor, fontSize: '11px', fontFamily: 'monospace' }} 
                         />
                       </YAxis>
 
-                      <Tooltip content={<CustomTooltip primaryColor={themeConfig.primary} />} />
+                      <Tooltip content={<CustomTooltip primaryColor={themeConfig.primary} isLight={isLight} />} />
                       
                       <Line 
                         yAxisId="left"
@@ -225,7 +246,7 @@ export default function ResultView({ state, onReset }) {
                         stroke={themeConfig.primary} 
                         strokeWidth={3} 
                         dot={{ fill: themeConfig.primary, r: 3, strokeWidth: 0 }} 
-                        activeDot={{ r: 5, fill: '#ffffff' }} 
+                        activeDot={{ r: 5, fill: themeConfig.primary }} 
                         isAnimationActive={false}
                       />
                       
@@ -233,7 +254,7 @@ export default function ResultView({ state, onReset }) {
                         yAxisId="left"
                         type="monotone" 
                         dataKey="raw" 
-                        stroke="rgba(255,255,255,0.3)" 
+                        stroke={strokeColor} 
                         strokeWidth={2} 
                         strokeDasharray="4 4" 
                         dot={false} 
@@ -258,16 +279,16 @@ export default function ResultView({ state, onReset }) {
                       margin={{ top: 15, right: 0, left: -10, bottom: 0 }}
                       className="font-mono"
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                      <XAxis dataKey="word" stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} />
-                      <YAxis stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} domain={[0, 'auto']} />
-                      <Tooltip content={<BurstTooltip primaryColor={themeConfig.primary} />} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                      <XAxis dataKey="word" stroke={strokeColor} fontSize={11} tickLine={false} />
+                      <YAxis stroke={strokeColor} fontSize={11} tickLine={false} domain={[0, 'auto']} />
+                      <Tooltip content={<BurstTooltip primaryColor={themeConfig.primary} isLight={isLight} />} />
                       <Bar dataKey="burst" fill={themeConfig.primary} radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 )
               ) : (
-                <div className="flex items-center justify-center h-full text-xs opacity-40 font-mono">
+                <div className={`flex items-center justify-center h-full text-xs font-mono ${subTextColor}`}>
                   Memuat Grafik...
                 </div>
               )}
@@ -276,27 +297,27 @@ export default function ResultView({ state, onReset }) {
 
         </div>
 
-        {/* Extended Stats Bar */}
-        <div className="flex flex-wrap justify-between items-center pt-4 border-t border-white/10 text-xs font-mono opacity-80 gap-4">
+        {/* Extended Stats Bar Sesuai Monkeytype charStats */}
+        <div className={`flex flex-wrap justify-between items-center pt-4 border-t ${dividerColor} text-xs font-mono gap-4`}>
           <div>
-            <span className="opacity-50 block">test type</span>
+            <span className={`block uppercase font-bold text-[10px] ${subTextColor}`}>test type</span>
             <span className="font-bold" style={{ color: themeConfig.primary }}>
               {testCategory === 'curriculum' ? activeLesson.title : `${modeType} ${modeType === 'time' ? `${timeLimit}s` : `${wordLimit} words`}`}
             </span>
           </div>
           <div>
-            <span className="opacity-50 block">characters (correct/incorrect/extra/missed)</span>
+            <span className={`block uppercase font-bold text-[10px] ${subTextColor}`}>characters (correct/incorrect/extra/missed)</span>
             <span className="font-bold">
-              <span style={{ color: themeConfig.primary }}>{correct}</span> / <span className="text-rose-400">{incorrect}</span> / <span className="text-rose-600">{extra}</span> / <span className="text-amber-500">{missed}</span>
+              <span style={{ color: themeConfig.primary }}>{correct}</span> / <span className="text-rose-500">{incorrect}</span> / <span className="text-rose-600">{extra}</span> / <span className="text-amber-600">{missed}</span>
             </span>
           </div>
           <div>
-            <span className="opacity-50 block">completed words</span>
-            <span className="font-bold">{completedWordsCount} Kata</span>
+            <span className={`block uppercase font-bold text-[10px] ${subTextColor}`}>completed words</span>
+            <span className={`font-bold ${themeConfig.textMain}`}>{completedWordsCount} Kata</span>
           </div>
           <div>
-            <span className="opacity-50 block">time</span>
-            <span className="font-bold">{elapsedSeconds}s</span>
+            <span className={`block uppercase font-bold text-[10px] ${subTextColor}`}>time</span>
+            <span className={`font-bold ${themeConfig.textMain}`}>{elapsedSeconds}s</span>
           </div>
         </div>
       </div>
@@ -312,13 +333,13 @@ export default function ResultView({ state, onReset }) {
 
         <button
           onClick={copyResultCardToClipboard}
-          className="flex items-center gap-2 px-5 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl border border-white/10 transition"
+          className={`flex items-center gap-2 px-5 py-3 ${isLight ? 'bg-black/10 hover:bg-black/15 text-black border-black/10' : 'bg-white/10 hover:bg-white/20 text-white border-white/10'} font-semibold rounded-xl border transition`}
           title="Copy Kartu Gambar ke Clipboard"
         >
           {isCopied ? (
             <>
-              <Check className="w-5 h-5 text-emerald-400" />
-              <span className="text-emerald-400">Tersalin ke Clipboard!</span>
+              <Check className="w-5 h-5 text-emerald-500" />
+              <span className="text-emerald-500">Tersalin ke Clipboard!</span>
             </>
           ) : (
             <>
