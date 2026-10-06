@@ -393,7 +393,7 @@ export function useTypingEngine() {
         setTypedWords(updated);
         playClickSound(false, soundEnabled, soundProfile);
       } else if (currentWordIdx > 0) {
-        // Kembali ke kata sebelumnya jika kata sebelumnya salah
+        // Kembali ke kata sebelumnya jika kata sebelumnya salah/belum lengkap
         const prevWord = words[currentWordIdx - 1];
         const prevTyped = typedWords[currentWordIdx - 1];
         if (prevTyped !== prevWord) {
@@ -409,14 +409,7 @@ export function useTypingEngine() {
       e.preventDefault();
       if (currentTyped.length === 0) return; // Mencegah spasi ganda kosong
 
-      if (testCategory === 'free' && modeType === 'words' && currentWordIdx + 1 >= wordLimit) {
-        setIsFinished(true);
-        setIsStarted(false);
-        if (timerRef.current) clearInterval(timerRef.current);
-        return;
-      }
-
-      // Append kata baru jika mendekati ujung
+      // Pindah ke kata berikutnya
       if (words.length - currentWordIdx < 30) {
         if (testCategory === 'free' && modeType === 'time') {
           setWords(prev => [...prev, ...generateWords(60)]);
@@ -432,7 +425,7 @@ export function useTypingEngine() {
     }
 
     if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      if (currentTyped.length >= currentWord + 10) return; // Batasi karakter ekstra maks +10
+      if (currentTyped.length >= currentWord.length + 10) return; // Batasi karakter ekstra maks +10
 
       const nextTyped = currentTyped + e.key;
       const targetChar = currentWord[currentTyped.length];
@@ -452,6 +445,17 @@ export function useTypingEngine() {
       }
 
       playClickSound(!isCorrect, soundEnabled, soundProfile);
+
+      if (testCategory === 'free' && modeType === 'words') {
+        const isLastWord = currentWordIdx + 1 >= wordLimit;
+        const isWordFullyTyped = nextTyped.length >= currentWord.length;
+
+        if (isLastWord && isWordFullyTyped) {
+          setIsFinished(true);
+          setIsStarted(false);
+          if (timerRef.current) clearInterval(timerRef.current);
+        }
+      }
     }
   };
 
