@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useRef, useState, useEffect } from 'react';
-import { RotateCcw, Image as ImageIcon, Check } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Label } from 'recharts';
+import { RotateCcw, Image as ImageIcon, Check, Zap } from 'lucide-react';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Label } from 'recharts';
 import { toBlob } from 'html-to-image';
 
 const CustomTooltip = ({ active, payload, label, primaryColor }) => {
@@ -24,6 +24,19 @@ const CustomTooltip = ({ active, payload, label, primaryColor }) => {
   return null;
 };
 
+const BurstTooltip = ({ active, payload, primaryColor }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-[#18191a] border border-white/15 p-2.5 rounded-lg font-mono text-xs shadow-2xl space-y-1 text-white">
+        <div className="text-white/40 border-b border-white/10 pb-1 font-bold">Kata: "{data.word}"</div>
+        <div className="font-bold" style={{ color: primaryColor }}>Burst Speed: {data.burst} WPM</div>
+      </div>
+    );
+  }
+  return null;
+};
+
 const RedCrossDot = (props) => {
   const { cx, cy, payload } = props;
   if (!cx || !cy || payload?.errors === null || payload?.errors === undefined) return null;
@@ -36,11 +49,12 @@ const RedCrossDot = (props) => {
 
 export default function ResultView({ state, onReset }) {
   const { 
-    wpm, rawWpm, accuracy, consistency, chartData, testCategory, activeLesson, 
+    wpm, rawWpm, accuracy, consistency, burstWpm, wordBursts, chartData, testCategory, activeLesson, 
     modeType, timeLimit, wordLimit, completedWordsCount, 
     charStats, elapsedSeconds, themeConfig
   } = state;
 
+  const [activeTab, setActiveTab] = useState('wpm'); // 'wpm' | 'burst'
   const [isCopied, setIsCopied] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const resultCardRef = useRef(null);
@@ -89,8 +103,8 @@ export default function ResultView({ state, onReset }) {
       >
         <div className="flex flex-col md:flex-row items-center gap-8">
           
-          {/* Main Displays: WPM, ACC, RAW, CONSISTENCY */}
-          <div className="grid grid-cols-2 md:grid-cols-1 gap-6 shrink-0 border-b md:border-b-0 md:border-r border-white/10 pb-6 md:pb-0 md:pr-8">
+          {/* Main Displays: WPM, ACC, RAW, CONSISTENCY, BURST */}
+          <div className="grid grid-cols-2 md:grid-cols-1 gap-5 shrink-0 border-b md:border-b-0 md:border-r border-white/10 pb-6 md:pb-0 md:pr-8">
             <div>
               <div className="text-xs opacity-50 uppercase tracking-widest font-mono">wpm</div>
               <div className="text-5xl md:text-6xl font-black font-mono leading-none transition-colors duration-300" style={{ color: themeConfig.primary }}>
@@ -105,113 +119,159 @@ export default function ResultView({ state, onReset }) {
               </div>
             </div>
 
-            <div>
-              <div className="text-xs opacity-50 uppercase tracking-widest font-mono">raw</div>
-              <div className={`text-3xl md:text-4xl font-bold font-mono leading-none opacity-80 ${themeConfig.textMain}`}>
-                {rawWpm}
+            <div className="grid grid-cols-3 md:grid-cols-1 gap-4">
+              <div>
+                <div className="text-xs opacity-50 uppercase tracking-widest font-mono">raw</div>
+                <div className={`text-2xl md:text-3xl font-bold font-mono leading-none opacity-80 ${themeConfig.textMain}`}>
+                  {rawWpm}
+                </div>
               </div>
-            </div>
 
-            <div>
-              <div className="text-xs opacity-50 uppercase tracking-widest font-mono">consistency</div>
-              <div className={`text-3xl md:text-4xl font-bold font-mono leading-none opacity-80 ${themeConfig.textMain}`}>
-                {consistency}%
+              <div>
+                <div className="text-xs opacity-50 uppercase tracking-widest font-mono">consistency</div>
+                <div className={`text-2xl md:text-3xl font-bold font-mono leading-none opacity-80 ${themeConfig.textMain}`}>
+                  {consistency}%
+                </div>
+              </div>
+
+              <div>
+                <div className="text-xs opacity-50 uppercase tracking-widest font-mono flex items-center gap-1">
+                  <Zap className="w-3 h-3 text-amber-400" /> burst
+                </div>
+                <div className="text-2xl md:text-3xl font-bold font-mono leading-none text-amber-400">
+                  {burstWpm}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Area Grafik Analytics */}
-          <div className="flex-1 w-full h-[260px]">
-            {isMounted ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart 
-                  data={safeChartData} 
-                  margin={{ top: 15, right: 0, left: -10, bottom: 0 }}
-                  className="font-mono"
+          {/* Area Grafik Analytics (WPM vs Burst Chart Toggle) */}
+          <div className="flex-1 w-full space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/10 text-xs font-mono">
+                <button
+                  onClick={() => setActiveTab('wpm')}
+                  className={`px-3 py-1 rounded-lg transition-all ${activeTab === 'wpm' ? 'bg-white/15 font-bold text-white' : 'opacity-50 hover:opacity-100'}`}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  
-                  <XAxis 
-                    dataKey="time" 
-                    stroke="rgba(255,255,255,0.3)" 
-                    fontSize={11} 
-                    tickLine={false} 
-                  />
-                  
-                  <YAxis 
-                    yAxisId="left"
-                    stroke="rgba(255,255,255,0.3)" 
-                    fontSize={11} 
-                    tickLine={false} 
-                    domain={[0, 'auto']} 
-                  >
-                    <Label 
-                      value="Words per Minute" 
-                      angle={-90} 
-                      position="insideLeft" 
-                      offset={12}
-                      style={{ textAnchor: 'middle', fill: 'rgba(255,255,255,0.35)', fontSize: '11px', fontFamily: 'monospace' }} 
-                    />
-                  </YAxis>
-
-                  <YAxis 
-                    yAxisId="right"
-                    orientation="right"
-                    stroke="rgba(255,255,255,0.3)" 
-                    fontSize={11} 
-                    tickLine={false} 
-                    domain={[0, 'auto']}
-                    allowDecimals={false}
-                  >
-                    <Label 
-                      value="Errors" 
-                      angle={90} 
-                      position="insideRight" 
-                      offset={12}
-                      style={{ textAnchor: 'middle', fill: 'rgba(255,255,255,0.35)', fontSize: '11px', fontFamily: 'monospace' }} 
-                    />
-                  </YAxis>
-
-                  <Tooltip content={<CustomTooltip primaryColor={themeConfig.primary} />} />
-                  
-                  <Line 
-                    yAxisId="left"
-                    type="monotone" 
-                    dataKey="wpm" 
-                    stroke={themeConfig.primary} 
-                    strokeWidth={3} 
-                    dot={{ fill: themeConfig.primary, r: 3, strokeWidth: 0 }} 
-                    activeDot={{ r: 5, fill: '#ffffff' }} 
-                    isAnimationActive={false}
-                  />
-                  
-                  <Line 
-                    yAxisId="left"
-                    type="monotone" 
-                    dataKey="raw" 
-                    stroke="rgba(255,255,255,0.3)" 
-                    strokeWidth={2} 
-                    strokeDasharray="4 4" 
-                    dot={false} 
-                    isAnimationActive={false}
-                  />
-
-                  <Line 
-                    yAxisId="right"
-                    type="monotone" 
-                    dataKey="errors" 
-                    stroke="transparent" 
-                    dot={<RedCrossDot />} 
-                    activeDot={false}
-                    isAnimationActive={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-full text-xs opacity-40 font-mono">
-                Memuat Grafik...
+                  WPM & Raw Time-Series
+                </button>
+                <button
+                  onClick={() => setActiveTab('burst')}
+                  className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1 ${activeTab === 'burst' ? 'bg-amber-500/20 text-amber-300 font-bold' : 'opacity-50 hover:opacity-100'}`}
+                >
+                  <Zap className="w-3 h-3" /> Burst WPM per Kata
+                </button>
               </div>
-            )}
+            </div>
+
+            <div className="w-full h-[240px]">
+              {isMounted ? (
+                activeTab === 'wpm' ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart 
+                      data={safeChartData} 
+                      margin={{ top: 15, right: 0, left: -10, bottom: 0 }}
+                      className="font-mono"
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                      
+                      <XAxis 
+                        dataKey="time" 
+                        stroke="rgba(255,255,255,0.3)" 
+                        fontSize={11} 
+                        tickLine={false} 
+                      />
+                      
+                      <YAxis 
+                        yAxisId="left"
+                        stroke="rgba(255,255,255,0.3)" 
+                        fontSize={11} 
+                        tickLine={false} 
+                        domain={[0, 'auto']} 
+                      >
+                        <Label 
+                          value="Words per Minute" 
+                          angle={-90} 
+                          position="insideLeft" 
+                          offset={12}
+                          style={{ textAnchor: 'middle', fill: 'rgba(255,255,255,0.35)', fontSize: '11px', fontFamily: 'monospace' }} 
+                        />
+                      </YAxis>
+
+                      <YAxis 
+                        yAxisId="right"
+                        orientation="right"
+                        stroke="rgba(255,255,255,0.3)" 
+                        fontSize={11} 
+                        tickLine={false} 
+                        domain={[0, 'auto']}
+                        allowDecimals={false}
+                      >
+                        <Label 
+                          value="Errors" 
+                          angle={90} 
+                          position="insideRight" 
+                          offset={12}
+                          style={{ textAnchor: 'middle', fill: 'rgba(255,255,255,0.35)', fontSize: '11px', fontFamily: 'monospace' }} 
+                        />
+                      </YAxis>
+
+                      <Tooltip content={<CustomTooltip primaryColor={themeConfig.primary} />} />
+                      
+                      <Line 
+                        yAxisId="left"
+                        type="monotone" 
+                        dataKey="wpm" 
+                        stroke={themeConfig.primary} 
+                        strokeWidth={3} 
+                        dot={{ fill: themeConfig.primary, r: 3, strokeWidth: 0 }} 
+                        activeDot={{ r: 5, fill: '#ffffff' }} 
+                        isAnimationActive={false}
+                      />
+                      
+                      <Line 
+                        yAxisId="left"
+                        type="monotone" 
+                        dataKey="raw" 
+                        stroke="rgba(255,255,255,0.3)" 
+                        strokeWidth={2} 
+                        strokeDasharray="4 4" 
+                        dot={false} 
+                        isAnimationActive={false}
+                      />
+
+                      <Line 
+                        yAxisId="right"
+                        type="monotone" 
+                        dataKey="errors" 
+                        stroke="transparent" 
+                        dot={<RedCrossDot />} 
+                        activeDot={false}
+                        isAnimationActive={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={wordBursts.length > 0 ? wordBursts : [{ word: '-', burst: 0 }]}
+                      margin={{ top: 15, right: 0, left: -10, bottom: 0 }}
+                      className="font-mono"
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                      <XAxis dataKey="word" stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} />
+                      <YAxis stroke="rgba(255,255,255,0.3)" fontSize={11} tickLine={false} domain={[0, 'auto']} />
+                      <Tooltip content={<BurstTooltip primaryColor={themeConfig.primary} />} />
+                      <Bar dataKey="burst" fill={themeConfig.primary} radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )
+              ) : (
+                <div className="flex items-center justify-center h-full text-xs opacity-40 font-mono">
+                  Memuat Grafik...
+                </div>
+              )}
+            </div>
           </div>
 
         </div>

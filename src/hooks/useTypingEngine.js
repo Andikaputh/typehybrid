@@ -31,7 +31,7 @@ export const THEME_CONFIGS = {
     primary: '#ff79c6',
     textPrimary: 'text-[#ff79c6]',
     bgPrimary: 'bg-[#ff79c6]',
-    textMain: 'text-[#f8f8f2]',
+    textMain: 'text-[#ff79c6]',
     subText: 'text-[#6272a4]',
     keyBg: 'bg-white/5',
     keyText: 'text-white/60',
@@ -109,6 +109,8 @@ export function useTypingEngine() {
   const [rawWpm, setRawWpm] = useState(0);
   const [accuracy, setAccuracy] = useState(100);
   const [consistency, setConsistency] = useState(100);
+  const [burstWpm, setBurstWpm] = useState(0); // Peak / Max Burst WPM
+  const [wordBursts, setWordBursts] = useState([]); // Array [{ word, burst }]
   const [charStats, setCharStats] = useState([0, 0, 0, 0]); // [correct, incorrect, extra, missed]
   const [completedWordsCount, setCompletedWordsCount] = useState(0);
   const [charErrors, setCharErrors] = useState({});
@@ -121,7 +123,10 @@ export function useTypingEngine() {
   const lastRecordedSecRef = useRef(0);
   const prevTotalRawCharsRef = useRef(0);
 
-  // Refs untuk mencegah stale closure di dalam timer interval
+  // Reference timestamp per kata untuk mengukur Burst WPM
+  const wordStartTimeRef = useRef(null);
+
+  // Refs untuk mencegah stale closure di interval
   const wordsRef = useRef(words);
   const typedWordsRef = useRef(typedWords);
   const errorsPerSecondRef = useRef(errorsPerSecond);
@@ -188,6 +193,7 @@ export function useTypingEngine() {
   const resetTest = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     startTimeRef.current = null;
+    wordStartTimeRef.current = null;
     lastRecordedSecRef.current = 0;
     prevTotalRawCharsRef.current = 0;
 
@@ -203,6 +209,8 @@ export function useTypingEngine() {
     setRawWpm(0);
     setAccuracy(100);
     setConsistency(100);
+    setBurstWpm(0);
+    setWordBursts([]);
     setCharStats([0, 0, 0, 0]);
     setCompletedWordsCount(0);
     setCharErrors({});
@@ -283,7 +291,7 @@ export function useTypingEngine() {
       if (!isCurrent) {
         if (wordIsPerfect) {
           completedWords++;
-          correctCharsFromCorrectWords += targetW.length + 1; // Kata + spasi
+          correctCharsFromCorrectWords += targetW.length + 1;
         }
         for (let j = 0; j < Math.max(targetW.length, typedW.length); j++) {
           if (j < typedW.length && j < targetW.length) {
@@ -295,9 +303,8 @@ export function useTypingEngine() {
             missed++;
           }
         }
-        correct++; // Spasi antar kata
+        correct++; // Spasi
       } else {
-        // Kata aktif
         for (let j = 0; j < typedW.length; j++) {
           if (j < targetW.length) {
             if (typedW[j] === targetW[j]) correct++;
@@ -322,11 +329,23 @@ export function useTypingEngine() {
     };
   }, []);
 
+  // Helper merekam Burst WPM per Kata
+  const recordWordBurst = useCallback((wordStr, startTimeMs, endTimeMs) => {
+    if (!startTimeMs || endTimeMs <= startTimeMs) return;
+    const durationInSec = (endTimeMs - startTimeMs) / 1000;
+    // Standard WPM formula: (chars / durationInSec) * (60 / 5) = (chars / durationInSec) * 12
+    const currentWordBurst = Math.round((wordStr.length / durationInSec) * 12);
+
+    setWordBursts(prev => [...prev, { word: wordStr, burst: currentWordBurst }]);
+    setBurstWpm(prevMax => Math.max(prevMax, currentWordBurst));
+  }, []);
+
   // Realtime Timer Interval
   useEffect(() => {
     if (isStarted && !isFinished) {
       if (!startTimeRef.current) {
         startTimeRef.current = Date.now();
+        wordStartTimeRef.current = Date.now();
         lastRecordedSecRef.current = 0;
         prevTotalRawCharsRef.current = 0;
         setChartData([{ time: 0, wpm: 0, raw: 0, errors: null }]);
@@ -392,9 +411,12 @@ export function useTypingEngine() {
 
     if (isFinished) return;
 
+    const now = Date.now();
+
     if (!isStarted && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
       setIsStarted(true);
-      startTimeRef.current = Date.now();
+      startTimeRef.current = now;
+      wordStartTimeRef.current = now;
       lastRecordedSecRef.current = 0;
       prevTotalRawCharsRef.current = 0;
       setChartData([{ time: 0, wpm: 0, raw: 0, errors: null }]);
@@ -410,7 +432,6 @@ export function useTypingEngine() {
         setTypedWords(updated);
         playClickSound(false, soundEnabled, soundProfile);
       } else if (currentWordIdx > 0) {
-        // Kembali ke kata sebelumnya jika kata sebelumnya salah/belum lengkap
         const prevWord = words[currentWordIdx - 1];
         const prevTyped = typedWords[currentWordIdx - 1];
         if (prevTyped !== prevWord) {
@@ -424,9 +445,12 @@ export function useTypingEngine() {
 
     if (e.key === ' ') {
       e.preventDefault();
-      if (currentTyped.length === 0) return; // Mencegah spasi ganda kosong
+      if (currentTyped.length === 0) return;
 
-      // Pindah ke kata berikutnya
+      // Hitung Burst WPM untuk kata yang baru saja diselesaikan
+      recordWordBurst(currentTyped, wordStartTimeRef.current, now);
+      wordStartTimeRef.current = now;
+
       if (words.length - currentWordIdx < 30) {
         if (testCategory === 'free' && modeType === 'time') {
           setWords(prev => [...prev, ...generateWords(60)]);
@@ -442,7 +466,11 @@ export function useTypingEngine() {
     }
 
     if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      if (currentTyped.length >= currentWord.length + 10) return; // Batasi karakter ekstra maks +10
+      if (currentTyped.length >= currentWord.length + 10) return;
+
+      if (!wordStartTimeRef.current) {
+        wordStartTimeRef.current = now;
+      }
 
       const nextTyped = currentTyped + e.key;
       const targetChar = currentWord[currentTyped.length];
@@ -463,12 +491,12 @@ export function useTypingEngine() {
 
       playClickSound(!isCorrect, soundEnabled, soundProfile);
 
-      // Cek Selesai Mode Words
       if (testCategory === 'free' && modeType === 'words') {
         const isLastWord = currentWordIdx + 1 >= wordLimit;
         const isWordFullyTyped = nextTyped.length >= currentWord.length;
 
         if (isLastWord && isWordFullyTyped) {
+          recordWordBurst(nextTyped, wordStartTimeRef.current, now);
           setIsFinished(true);
           setIsStarted(false);
           if (timerRef.current) clearInterval(timerRef.current);
@@ -492,7 +520,7 @@ export function useTypingEngine() {
       selectedSubLessonId, setSelectedSubLessonId, soundEnabled, setSoundEnabled,
       soundProfile, setSoundProfile, theme, setTheme, themeConfig,
       words, currentWordIdx, typedWords, isFinished, isStarted,
-      wpm, rawWpm, accuracy, consistency, elapsedSeconds, completedWordsCount, charStats,
+      wpm, rawWpm, accuracy, consistency, burstWpm, wordBursts, elapsedSeconds, completedWordsCount, charStats,
       chartData, charErrors, activeLesson, activeSubLesson
     },
     actions: { handleKeyDown, resetTest, getNextChar, activeFinger }
