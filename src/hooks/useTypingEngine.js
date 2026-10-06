@@ -251,8 +251,9 @@ export function useTypingEngine() {
     } catch (e) {}
   }, [testCategory, modeType, timeLimit, wordLimit, difficulty, selectedLessonId, selectedSubLessonId, theme, soundEnabled, soundProfile]);
 
+  // Reset otomatis saat opsi tes berganti
   useEffect(() => {
-    if (!isFinished) resetTest();
+    resetTest();
   }, [selectedLessonId, selectedSubLessonId, testCategory, modeType, timeLimit, wordLimit, difficulty, resetTest]);
 
   // Rumus Koefisien Variasi untuk Consistency
