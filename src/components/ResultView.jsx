@@ -38,7 +38,7 @@ export default function ResultView({ state, onReset }) {
   const { 
     wpm, rawWpm, accuracy, consistency, chartData, testCategory, activeLesson, 
     modeType, timeLimit, wordLimit, completedWordsCount, 
-    correctKeystrokes, totalKeystrokes, elapsedSeconds, themeConfig
+    charStats, elapsedSeconds, themeConfig
   } = state;
 
   const [isCopied, setIsCopied] = useState(false);
@@ -78,7 +78,7 @@ export default function ResultView({ state, onReset }) {
     }
   };
 
-  const incorrectKeystrokes = totalKeystrokes - correctKeystrokes;
+  const [correct, incorrect, extra, missed] = charStats || [0, 0, 0, 0];
 
   return (
     <div className="py-6 space-y-6 animate-fade-in">
@@ -98,7 +98,7 @@ export default function ResultView({ state, onReset }) {
             </div>
 
             <div>
-              <div className="text-xs opacity-50 uppercase tracking-widest font-mono">acc</div>
+              <div className="text-xs opacity-50 uppercase tracking-widest font-mono font-bold">acc</div>
               <div className={`text-4xl md:text-5xl font-black font-mono leading-none ${themeConfig.textMain}`}>
                 {accuracy}%
               </div>
@@ -215,7 +215,7 @@ export default function ResultView({ state, onReset }) {
 
         </div>
 
-        {/* Extended Stats Bar */}
+        {/* Extended Stats Bar Sesuai Monkeytype charStats */}
         <div className="flex flex-wrap justify-between items-center pt-4 border-t border-white/10 text-xs font-mono opacity-80 gap-4">
           <div>
             <span className="opacity-50 block">test type</span>
@@ -224,9 +224,9 @@ export default function ResultView({ state, onReset }) {
             </span>
           </div>
           <div>
-            <span className="opacity-50 block">characters</span>
+            <span className="opacity-50 block">characters (correct/incorrect/extra/missed)</span>
             <span className="font-bold">
-              <span style={{ color: themeConfig.primary }}>{correctKeystrokes}</span> / <span className="text-rose-400">{incorrectKeystrokes}</span>
+              <span style={{ color: themeConfig.primary }}>{correct}</span> / <span className="text-rose-400">{incorrect}</span> / <span className="text-rose-600">{extra}</span> / <span className="text-amber-500">{missed}</span>
             </span>
           </div>
           <div>

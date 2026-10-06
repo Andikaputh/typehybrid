@@ -96,8 +96,10 @@ export function useTypingEngine() {
   const [soundProfile, setSoundProfile] = useState('thock');
   const [theme, setTheme] = useState('monkey');
 
-  const [targetText, setTargetText] = useState('');
-  const [input, setInput] = useState('');
+  // Core Engine States
+  const [words, setWords] = useState([]); // Array kata target
+  const [currentWordIdx, setCurrentWordIdx] = useState(0);
+  const [typedWords, setTypedWords] = useState([]); // Array string kata yang pernah/sedang diketik
   const [isStarted, setIsStarted] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
@@ -107,8 +109,7 @@ export function useTypingEngine() {
   const [rawWpm, setRawWpm] = useState(0);
   const [accuracy, setAccuracy] = useState(100);
   const [consistency, setConsistency] = useState(100);
-  const [totalKeystrokes, setTotalKeystrokes] = useState(0);
-  const [correctKeystrokes, setCorrectKeystrokes] = useState(0);
+  const [charStats, setCharStats] = useState([0, 0, 0, 0]); // [correct, incorrect, extra, missed]
   const [completedWordsCount, setCompletedWordsCount] = useState(0);
   const [charErrors, setCharErrors] = useState({});
 
@@ -117,14 +118,13 @@ export function useTypingEngine() {
 
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
-  const prevKeystrokesRef = useRef(0);
   const lastRecordedSecRef = useRef(0);
+  const prevTotalRawCharsRef = useRef(0);
 
   const activeLesson = TYPING_STUDY_CURRICULUM.find(l => l.id === selectedLessonId) || TYPING_STUDY_CURRICULUM[0];
   const activeSubLesson = activeLesson.subLessons.find(s => s.id === selectedSubLessonId) || activeLesson.subLessons[0];
   const themeConfig = THEME_CONFIGS[theme] || THEME_CONFIGS.monkey;
 
-  // Algoritma Fisher-Yates Shuffle
   const shuffleArray = (array) => {
     const arr = [...array];
     for (let i = arr.length - 1; i > 0; i--) {
@@ -139,66 +139,65 @@ export function useTypingEngine() {
       ? Array.from(new Set(subText.replace(/\s+/g, '').split(''))) 
       : (newKeys.length > 0 ? newKeys : ['a', 's', 'd', 'f', 'j', 'k', 'l', ';']);
 
-    let words = [];
+    let generated = [];
     for (let i = 0; i < wordCount; i++) {
       const len = Math.floor(Math.random() * 4) + 2;
       let w = '';
       for (let j = 0; j < len; j++) {
         w += sourceChars[Math.floor(Math.random() * sourceChars.length)];
       }
-      words.push(w);
+      generated.push(w);
     }
-    return shuffleArray(words).join(' ').replace(/\s+/g, ' ').trim();
+    return shuffleArray(generated);
   }, []);
 
   const generateWords = useCallback((count = 100) => {
     const wordPool = WORDS_DIFFICULTY[difficulty] || WORDS_DIFFICULTY.medium;
     let res = [];
-    
     while (res.length < count) {
-      const shuffledPool = shuffleArray(wordPool);
-      res = res.concat(shuffledPool);
+      res = res.concat(shuffleArray(wordPool));
     }
-    
-    return res.slice(0, count).join(' ').replace(/\s+/g, ' ').trim();
+    return res.slice(0, count);
   }, [difficulty]);
 
   const loadTextContent = useCallback(() => {
-    let rawText = '';
     if (testCategory === 'curriculum') {
-      rawText = generateCurriculumText(activeSubLesson.text, activeLesson.newKeys, 120);
+      return generateCurriculumText(activeSubLesson.text, activeLesson.newKeys, 120);
     } else {
-      rawText = modeType === 'words' ? generateWords(wordLimit) : generateWords(120);
+      return modeType === 'words' ? generateWords(wordLimit) : generateWords(120);
     }
-    return rawText.replace(/\s+/g, ' ').trim();
   }, [testCategory, activeSubLesson, activeLesson, modeType, wordLimit, generateCurriculumText, generateWords]);
 
   const resetTest = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     startTimeRef.current = null;
-    prevKeystrokesRef.current = 0;
     lastRecordedSecRef.current = 0;
-    setInput('');
+    prevTotalRawCharsRef.current = 0;
+
+    const initialWords = loadTextContent();
+    setWords(initialWords);
+    setCurrentWordIdx(0);
+    setTypedWords(['']);
     setIsStarted(false);
     setElapsedSeconds(0);
     setIsFinished(false);
+
     setWpm(0);
     setRawWpm(0);
     setAccuracy(100);
     setConsistency(100);
-    setTotalKeystrokes(0);
-    setCorrectKeystrokes(0);
+    setCharStats([0, 0, 0, 0]);
     setCompletedWordsCount(0);
+    setCharErrors({});
     setChartData([]);
     setErrorsPerSecond({});
-    setTargetText(loadTextContent());
 
     try {
       localStorage.removeItem('last_typing_result');
     } catch (e) {}
   }, [loadTextContent]);
 
-  // Read LocalStorage
+  // Read & Save LocalStorage
   useEffect(() => {
     try {
       const savedConfig = localStorage.getItem('typing_app_config');
@@ -215,80 +214,29 @@ export function useTypingEngine() {
         if (parsed.soundProfile) setSoundProfile(parsed.soundProfile);
         if (parsed.soundEnabled !== undefined) setSoundEnabled(parsed.soundEnabled);
       }
-
-      const savedResult = localStorage.getItem('last_typing_result');
-      if (savedResult) {
-        const parsedRes = JSON.parse(savedResult);
-        if (parsedRes.isFinished) {
-          setIsFinished(true);
-          setWpm(parsedRes.wpm || 0);
-          setRawWpm(parsedRes.rawWpm || 0);
-          setAccuracy(parsedRes.accuracy || 100);
-          setConsistency(parsedRes.consistency || 100);
-          setChartData(parsedRes.chartData || []);
-          setCompletedWordsCount(parsedRes.completedWordsCount || 0);
-          setTotalKeystrokes(parsedRes.totalKeystrokes || 0);
-          setCorrectKeystrokes(parsedRes.correctKeystrokes || 0);
-          setElapsedSeconds(parsedRes.elapsedSeconds || 0);
-        }
-      }
-    } catch (e) {
-      console.error('Gagal membaca localStorage:', e);
-    }
+    } catch (e) {}
   }, []);
 
-  // Save LocalStorage
   useEffect(() => {
     try {
       localStorage.setItem(
         'typing_app_config',
         JSON.stringify({
-          testCategory,
-          modeType,
-          timeLimit,
-          wordLimit,
-          difficulty,
-          selectedLessonId,
-          selectedSubLessonId,
-          theme,
-          soundEnabled,
-          soundProfile,
+          testCategory, modeType, timeLimit, wordLimit, difficulty,
+          selectedLessonId, selectedSubLessonId, theme, soundEnabled, soundProfile
         })
       );
-    } catch (e) {
-      console.error('Gagal menyimpan konfigurasi ke localStorage:', e);
-    }
+    } catch (e) {}
   }, [testCategory, modeType, timeLimit, wordLimit, difficulty, selectedLessonId, selectedSubLessonId, theme, soundEnabled, soundProfile]);
 
   useEffect(() => {
-    if (!isFinished) {
-      resetTest();
-    }
+    if (!isFinished) resetTest();
   }, [selectedLessonId, selectedSubLessonId, testCategory, modeType, timeLimit, wordLimit, difficulty, resetTest]);
 
-  // Kalkulasi Karakter Benar dari Kata Benar Sesuai Standar Monkeytype
-  const calculateCorrectCharsFromCorrectWords = (typed, target) => {
-    const typedArr = typed.split(' ');
-    const targetArr = target.split(' ');
-    let validCharsCount = 0;
-
-    for (let i = 0; i < typedArr.length; i++) {
-      if (i < targetArr.length && typedArr[i] === targetArr[i]) {
-        validCharsCount += typedArr[i].length;
-        // Hitung spasi jika bukan kata terakhir atau jika pengguna menekan spasi setelah kata tersebut
-        if (i < typedArr.length - 1 || typed.endsWith(' ')) {
-          validCharsCount += 1;
-        }
-      }
-    }
-    return validCharsCount;
-  };
-
-  // Rumus Koefisien Variasi untuk Consistency
+  // Rumus Koefisien Variasi Monkeytype untuk Consistency
   const calculateConsistency = (dataSamples) => {
-    const rawValues = dataSamples.map(d => d.raw).filter(val => val > 0);
-    if (rawValues.length <= 1) return 100;
-
+    if (!dataSamples || dataSamples.length <= 1) return 100;
+    const rawValues = dataSamples.map(d => d.raw);
     const mean = rawValues.reduce((a, b) => a + b, 0) / rawValues.length;
     if (mean === 0) return 100;
 
@@ -299,13 +247,71 @@ export function useTypingEngine() {
     return Math.max(0, Math.min(100, Math.round((1 - cv) * 100)));
   };
 
-  // Realtime Timer dengan Presisi High-Frequency (200ms)
+  // Kalkulasi Karakter Sesuai Standar Monkeytype
+  const evaluateMetrics = useCallback((wordsArr, typedWordsArr) => {
+    let correct = 0;
+    let incorrect = 0;
+    let extra = 0;
+    let missed = 0;
+    let correctCharsFromCorrectWords = 0;
+    let completedWords = 0;
+
+    for (let i = 0; i < typedWordsArr.length; i++) {
+      const targetW = wordsArr[i] || '';
+      const typedW = typedWordsArr[i] || '';
+      const isCurrent = i === typedWordsArr.length - 1;
+
+      let wordIsPerfect = (typedW === targetW);
+
+      if (!isCurrent) {
+        if (wordIsPerfect) {
+          completedWords++;
+          correctCharsFromCorrectWords += targetW.length + 1; // Kata + spasi
+        }
+        for (let j = 0; j < Math.max(targetW.length, typedW.length); j++) {
+          if (j < typedW.length && j < targetW.length) {
+            if (typedW[j] === targetW[j]) correct++;
+            else incorrect++;
+          } else if (j >= targetW.length) {
+            extra++;
+          } else if (j >= typedW.length) {
+            missed++;
+          }
+        }
+        correct++; // Spasi antar kata
+      } else {
+        // Kata aktif
+        for (let j = 0; j < typedW.length; j++) {
+          if (j < targetW.length) {
+            if (typedW[j] === targetW[j]) correct++;
+            else incorrect++;
+          } else {
+            extra++;
+          }
+        }
+      }
+    }
+
+    const totalAttempts = correct + incorrect + extra;
+    const acc = totalAttempts > 0 ? Math.round((correct / totalAttempts) * 100) : 100;
+    const rawChars = correct + incorrect + extra;
+
+    return {
+      charStats: [correct, incorrect, extra, missed],
+      accuracy: acc,
+      correctCharsFromCorrectWords,
+      totalRawChars: rawChars,
+      completedWords
+    };
+  }, []);
+
+  // Realtime Timer Interval
   useEffect(() => {
     if (isStarted && !isFinished) {
       if (!startTimeRef.current) {
         startTimeRef.current = Date.now();
-        prevKeystrokesRef.current = 0;
         lastRecordedSecRef.current = 0;
+        prevTotalRawCharsRef.current = 0;
         setChartData([{ time: 0, wpm: 0, raw: 0, errors: null }]);
       }
 
@@ -317,33 +323,29 @@ export function useTypingEngine() {
 
         if (totalElapsedMs > 0) {
           const minutesSpent = totalElapsedMs / 60000;
-          
-          const correctChars = calculateCorrectCharsFromCorrectWords(input, targetText);
-          const currentWpm = Math.round((correctChars / 5) / minutesSpent);
-          const cumRawWpm = Math.round((totalKeystrokes / 5) / minutesSpent);
+          const { correctCharsFromCorrectWords, totalRawChars, charStats: currentStats, accuracy: currentAcc, completedWords } = evaluateMetrics(words, typedWords);
+
+          const currentWpm = Math.round((correctCharsFromCorrectWords / 5) / minutesSpent);
+          const cumRawWpm = Math.round((totalRawChars / 5) / minutesSpent);
 
           setWpm(currentWpm);
           setRawWpm(cumRawWpm);
+          setAccuracy(currentAcc);
+          setCharStats(currentStats);
+          setCompletedWordsCount(completedWords);
 
-          // Catat titik grafik HANYA saat memasuki detik baru (1s, 2s, 3s...)
           if (seconds > lastRecordedSecRef.current) {
             lastRecordedSecRef.current = seconds;
-
-            const deltaKeystrokes = totalKeystrokes - prevKeystrokesRef.current;
-            prevKeystrokesRef.current = totalKeystrokes;
-            const momentaryRawWpm = Math.round((deltaKeystrokes / 5) * 60);
+            const deltaRawChars = totalRawChars - prevTotalRawCharsRef.current;
+            prevTotalRawCharsRef.current = totalRawChars;
+            const momentaryRawWpm = Math.round((deltaRawChars / 5) * 60);
             const errCountAtSec = errorsPerSecond[seconds] || 0;
 
             setChartData((prev) => {
               if (prev.some(d => d.time === seconds)) return prev;
               const updatedData = [
-                ...prev, 
-                { 
-                  time: seconds, 
-                  wpm: currentWpm, 
-                  raw: momentaryRawWpm, 
-                  errors: errCountAtSec > 0 ? errCountAtSec : null 
-                }
+                ...prev,
+                { time: seconds, wpm: currentWpm, raw: momentaryRawWpm, errors: errCountAtSec > 0 ? errCountAtSec : null }
               ];
               setConsistency(calculateConsistency(updatedData));
               return updatedData;
@@ -361,99 +363,104 @@ export function useTypingEngine() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isStarted, isFinished, testCategory, modeType, timeLimit, input, targetText, totalKeystrokes, errorsPerSecond]);
+  }, [isStarted, isFinished, testCategory, modeType, timeLimit, words, typedWords, errorsPerSecond, evaluateMetrics]);
 
+  // Handler Tombol Keyboard
   const handleKeyDown = (e) => {
     if (e.key === 'Tab') {
       e.preventDefault();
       resetTest();
+      return;
     }
-  };
 
-  const handleInputChange = (e) => {
     if (isFinished) return;
-    const value = e.target.value;
-    const now = Date.now();
 
-    if (!isStarted) {
+    if (!isStarted && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
       setIsStarted(true);
-      startTimeRef.current = now;
-      prevKeystrokesRef.current = 0;
+      startTimeRef.current = Date.now();
       lastRecordedSecRef.current = 0;
+      prevTotalRawCharsRef.current = 0;
       setChartData([{ time: 0, wpm: 0, raw: 0, errors: null }]);
     }
 
-    const currentTotalKeystrokes = totalKeystrokes + (value.length > input.length ? 1 : 0);
-    let currentCorrectKeystrokes = correctKeystrokes;
+    const currentWord = words[currentWordIdx] || '';
+    const currentTyped = typedWords[currentWordIdx] || '';
 
-    if (value.length > input.length) {
-      const charIndex = value.length - 1;
-      const addedChar = value[charIndex];
-      const expectedChar = targetText[charIndex];
-      const isCorrect = addedChar === expectedChar;
+    if (e.key === 'Backspace') {
+      if (currentTyped.length > 0) {
+        const updated = [...typedWords];
+        updated[currentWordIdx] = currentTyped.slice(0, -1);
+        setTypedWords(updated);
+        playClickSound(false, soundEnabled, soundProfile);
+      } else if (currentWordIdx > 0) {
+        // Kembali ke kata sebelumnya jika kata sebelumnya salah
+        const prevWord = words[currentWordIdx - 1];
+        const prevTyped = typedWords[currentWordIdx - 1];
+        if (prevTyped !== prevWord) {
+          setCurrentWordIdx(currentWordIdx - 1);
+          setTypedWords(typedWords.slice(0, -1));
+          playClickSound(false, soundEnabled, soundProfile);
+        }
+      }
+      return;
+    }
 
-      if (isCorrect) {
-        currentCorrectKeystrokes += 1;
-        setCorrectKeystrokes(currentCorrectKeystrokes);
-      } else {
+    if (e.key === ' ') {
+      e.preventDefault();
+      if (currentTyped.length === 0) return; // Mencegah spasi ganda kosong
+
+      if (testCategory === 'free' && modeType === 'words' && currentWordIdx + 1 >= wordLimit) {
+        setIsFinished(true);
+        setIsStarted(false);
+        if (timerRef.current) clearInterval(timerRef.current);
+        return;
+      }
+
+      // Append kata baru jika mendekati ujung
+      if (words.length - currentWordIdx < 30) {
+        if (testCategory === 'free' && modeType === 'time') {
+          setWords(prev => [...prev, ...generateWords(60)]);
+        } else if (testCategory === 'curriculum') {
+          setWords(prev => [...prev, ...generateCurriculumText(activeSubLesson.text, activeLesson.newKeys, 60)]);
+        }
+      }
+
+      setCurrentWordIdx(prev => prev + 1);
+      setTypedWords(prev => [...prev, '']);
+      playClickSound(false, soundEnabled, soundProfile);
+      return;
+    }
+
+    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (currentTyped.length >= currentWord + 10) return; // Batasi karakter ekstra maks +10
+
+      const nextTyped = currentTyped + e.key;
+      const targetChar = currentWord[currentTyped.length];
+      const isCorrect = e.key === targetChar;
+
+      const updated = [...typedWords];
+      updated[currentWordIdx] = nextTyped;
+      setTypedWords(updated);
+
+      if (!isCorrect) {
         const curSec = Math.max(1, elapsedSeconds);
-        setErrorsPerSecond((prev) => ({ ...prev, [curSec]: (prev[curSec] || 0) + 1 }));
-        setCharErrors((prev) => ({
+        setErrorsPerSecond(prev => ({ ...prev, [curSec]: (prev[curSec] || 0) + 1 }));
+        setCharErrors(prev => ({
           ...prev,
-          [expectedChar?.toLowerCase() || 'space']: (prev[expectedChar?.toLowerCase() || 'space'] || 0) + 1
+          [targetChar?.toLowerCase() || 'space']: (prev[targetChar?.toLowerCase() || 'space'] || 0) + 1
         }));
       }
 
-      setTotalKeystrokes(currentTotalKeystrokes);
-      setAccuracy(currentTotalKeystrokes > 0 ? Math.round((currentCorrectKeystrokes / currentTotalKeystrokes) * 100) : 100);
       playClickSound(!isCorrect, soundEnabled, soundProfile);
-    }
-
-    setInput(value);
-
-    // Update WPM & Raw WPM Real-time langsung dari keystroke
-    const elapsedMs = startTimeRef.current ? Math.max(now - startTimeRef.current, 100) : 100;
-    const minutesSpent = elapsedMs / 60000;
-
-    const correctChars = calculateCorrectCharsFromCorrectWords(value, targetText);
-    const currentWpm = Math.round((correctChars / 5) / minutesSpent);
-    const cumRawWpm = Math.round((currentTotalKeystrokes / 5) / minutesSpent);
-
-    setWpm(currentWpm);
-    setRawWpm(cumRawWpm);
-
-    // Hitung kata selesai
-    const targetWords = targetText.split(' ');
-    const typedWords = value.split(' ');
-    let validWords = 0;
-
-    for (let i = 0; i < typedWords.length - 1; i++) {
-      if (typedWords[i] === targetWords[i]) validWords++;
-    }
-    if (typedWords.length > 0 && typedWords[typedWords.length - 1] === targetWords[typedWords.length - 1]) {
-      validWords++;
-    }
-    setCompletedWordsCount(validWords);
-
-    // Auto-Append Buffer
-    const remainingChars = targetText.length - value.length;
-    if (remainingChars < 100) {
-      if (testCategory === 'free' && modeType === 'time') {
-        setTargetText((prev) => (prev + ' ' + generateWords(60)).replace(/\s+/g, ' ').trim());
-      } else if (testCategory === 'curriculum') {
-        setTargetText((prev) => (prev + ' ' + generateCurriculumText(activeSubLesson.text, activeLesson.newKeys, 60)).replace(/\s+/g, ' ').trim());
-      }
-    }
-
-    // Selesaikan Tes jika Mode Words Selesai
-    if (testCategory === 'free' && modeType === 'words' && typedWords.length >= wordLimit && value.endsWith(' ')) {
-      setIsFinished(true);
-      setIsStarted(false);
-      if (timerRef.current) clearInterval(timerRef.current);
     }
   };
 
-  const getNextChar = () => targetText[input.length]?.toLowerCase();
+  const getNextChar = () => {
+    const currentWord = words[currentWordIdx] || '';
+    const currentTyped = typedWords[currentWordIdx] || '';
+    return currentWord[currentTyped.length]?.toLowerCase();
+  };
+
   const activeFinger = FINGER_MAP[getNextChar()] || '';
 
   return {
@@ -461,10 +468,11 @@ export function useTypingEngine() {
       testCategory, setTestCategory, modeType, setModeType, timeLimit, setTimeLimit,
       wordLimit, setWordLimit, difficulty, setDifficulty, selectedLessonId, setSelectedLessonId,
       selectedSubLessonId, setSelectedSubLessonId, soundEnabled, setSoundEnabled,
-      soundProfile, setSoundProfile, theme, setTheme, themeConfig, targetText, input, isFinished, 
-      wpm, rawWpm, accuracy, consistency, elapsedSeconds, completedWordsCount, totalKeystrokes, correctKeystrokes,
+      soundProfile, setSoundProfile, theme, setTheme, themeConfig,
+      words, currentWordIdx, typedWords, isFinished, isStarted,
+      wpm, rawWpm, accuracy, consistency, elapsedSeconds, completedWordsCount, charStats,
       chartData, charErrors, activeLesson, activeSubLesson
     },
-    actions: { handleInputChange, handleKeyDown, resetTest, getNextChar, activeFinger }
+    actions: { handleKeyDown, resetTest, getNextChar, activeFinger }
   };
 }
