@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useEffect } from 'react';
-import { RotateCcw, Image as ImageIcon, Check, Zap } from 'lucide-react';
+import { RotateCcw, Image as ImageIcon, Check } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Label } from 'recharts';
 import { toBlob } from 'html-to-image';
 
@@ -54,7 +54,7 @@ export default function ResultView({ state, onReset }) {
     charStats, elapsedSeconds, themeConfig
   } = state;
 
-  const [activeTab, setActiveTab] = useState('wpm'); // 'wpm' | 'burst'
+  const [activeTab, setActiveTab] = useState('wpm');
   const [isCopied, setIsCopied] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const resultCardRef = useRef(null);
@@ -135,8 +135,8 @@ export default function ResultView({ state, onReset }) {
               </div>
 
               <div>
-                <div className="text-xs opacity-50 uppercase tracking-widest font-mono flex items-center gap-1">
-                  <Zap className="w-3 h-3 text-amber-400" /> burst
+                <div className="text-xs opacity-50 uppercase tracking-widest font-mono text-amber-400 font-bold">
+                  burst
                 </div>
                 <div className="text-2xl md:text-3xl font-bold font-mono leading-none text-amber-400">
                   {burstWpm}
@@ -145,7 +145,7 @@ export default function ResultView({ state, onReset }) {
             </div>
           </div>
 
-          {/* Area Grafik Analytics (WPM vs Burst Chart Toggle) */}
+          {/* Area Grafik Analytics */}
           <div className="flex-1 w-full space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/10 text-xs font-mono">
@@ -153,13 +153,13 @@ export default function ResultView({ state, onReset }) {
                   onClick={() => setActiveTab('wpm')}
                   className={`px-3 py-1 rounded-lg transition-all ${activeTab === 'wpm' ? 'bg-white/15 font-bold text-white' : 'opacity-50 hover:opacity-100'}`}
                 >
-                  WPM & Raw Time-Series
+                  WPM & Raw
                 </button>
                 <button
                   onClick={() => setActiveTab('burst')}
-                  className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1 ${activeTab === 'burst' ? 'bg-amber-500/20 text-amber-300 font-bold' : 'opacity-50 hover:opacity-100'}`}
+                  className={`px-3 py-1 rounded-lg transition-all ${activeTab === 'burst' ? 'bg-amber-500/20 text-amber-300 font-bold' : 'opacity-50 hover:opacity-100'}`}
                 >
-                  <Zap className="w-3 h-3" /> Burst WPM per Kata
+                  Burst per Kata
                 </button>
               </div>
             </div>
@@ -276,7 +276,7 @@ export default function ResultView({ state, onReset }) {
 
         </div>
 
-        {/* Extended Stats Bar Sesuai Monkeytype charStats */}
+        {/* Extended Stats Bar */}
         <div className="flex flex-wrap justify-between items-center pt-4 border-t border-white/10 text-xs font-mono opacity-80 gap-4">
           <div>
             <span className="opacity-50 block">test type</span>

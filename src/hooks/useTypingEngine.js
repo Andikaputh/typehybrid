@@ -31,7 +31,7 @@ export const THEME_CONFIGS = {
     primary: '#ff79c6',
     textPrimary: 'text-[#ff79c6]',
     bgPrimary: 'bg-[#ff79c6]',
-    textMain: 'text-[#ff79c6]',
+    textMain: 'text-[#f8f8f2]',
     subText: 'text-[#6272a4]',
     keyBg: 'bg-white/5',
     keyText: 'text-white/60',
@@ -109,9 +109,9 @@ export function useTypingEngine() {
   const [rawWpm, setRawWpm] = useState(0);
   const [accuracy, setAccuracy] = useState(100);
   const [consistency, setConsistency] = useState(100);
-  const [burstWpm, setBurstWpm] = useState(0); // Peak / Max Burst WPM
-  const [wordBursts, setWordBursts] = useState([]); // Array [{ word, burst }]
-  const [charStats, setCharStats] = useState([0, 0, 0, 0]); // [correct, incorrect, extra, missed]
+  const [burstWpm, setBurstWpm] = useState(0);
+  const [wordBursts, setWordBursts] = useState([]);
+  const [charStats, setCharStats] = useState([0, 0, 0, 0]);
   const [completedWordsCount, setCompletedWordsCount] = useState(0);
   const [charErrors, setCharErrors] = useState({});
 
@@ -122,11 +122,8 @@ export function useTypingEngine() {
   const startTimeRef = useRef(null);
   const lastRecordedSecRef = useRef(0);
   const prevTotalRawCharsRef = useRef(0);
-
-  // Reference timestamp per kata untuk mengukur Burst WPM
   const wordStartTimeRef = useRef(null);
 
-  // Refs untuk mencegah stale closure di interval
   const wordsRef = useRef(words);
   const typedWordsRef = useRef(typedWords);
   const errorsPerSecondRef = useRef(errorsPerSecond);
@@ -258,7 +255,7 @@ export function useTypingEngine() {
     if (!isFinished) resetTest();
   }, [selectedLessonId, selectedSubLessonId, testCategory, modeType, timeLimit, wordLimit, difficulty, resetTest]);
 
-  // Rumus Koefisien Variasi Monkeytype untuk Consistency
+  // Rumus Koefisien Variasi untuk Consistency
   const calculateConsistency = (dataSamples) => {
     if (!dataSamples || dataSamples.length <= 1) return 100;
     const rawValues = dataSamples.map(d => d.raw);
@@ -303,7 +300,7 @@ export function useTypingEngine() {
             missed++;
           }
         }
-        correct++; // Spasi
+        correct++;
       } else {
         for (let j = 0; j < typedW.length; j++) {
           if (j < targetW.length) {
@@ -329,11 +326,9 @@ export function useTypingEngine() {
     };
   }, []);
 
-  // Helper merekam Burst WPM per Kata
   const recordWordBurst = useCallback((wordStr, startTimeMs, endTimeMs) => {
     if (!startTimeMs || endTimeMs <= startTimeMs) return;
     const durationInSec = (endTimeMs - startTimeMs) / 1000;
-    // Standard WPM formula: (chars / durationInSec) * (60 / 5) = (chars / durationInSec) * 12
     const currentWordBurst = Math.round((wordStr.length / durationInSec) * 12);
 
     setWordBursts(prev => [...prev, { word: wordStr, burst: currentWordBurst }]);
@@ -447,7 +442,6 @@ export function useTypingEngine() {
       e.preventDefault();
       if (currentTyped.length === 0) return;
 
-      // Hitung Burst WPM untuk kata yang baru saja diselesaikan
       recordWordBurst(currentTyped, wordStartTimeRef.current, now);
       wordStartTimeRef.current = now;
 
