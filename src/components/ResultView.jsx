@@ -105,49 +105,49 @@ export default function ResultView({ state, onReset }) {
   const [correct, incorrect, extra, missed] = charStats || [0, 0, 0, 0];
 
   return (
-    <div className="py-6 space-y-6 animate-fade-in">
+    <div className="py-4 sm:py-6 space-y-4 sm:space-y-6 animate-fade-in">
       <div 
         ref={resultCardRef}
-        className={`${themeConfig.cardBg} p-8 rounded-3xl border ${themeConfig.cardBorder} space-y-6 shadow-2xl transition-colors duration-300`}
+        className={`${themeConfig.cardBg} p-4 sm:p-8 rounded-3xl border ${themeConfig.cardBorder} space-y-6 shadow-2xl transition-colors duration-300`}
       >
-        <div className="flex flex-col md:flex-row items-center gap-8">
+        <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8">
           
           {/* Main Displays: WPM, ACC, RAW, CONSISTENCY, BURST */}
-          <div className={`grid grid-cols-2 md:grid-cols-1 gap-5 shrink-0 border-b md:border-b-0 md:border-r ${dividerColor} pb-6 md:pb-0 md:pr-8`}>
+          <div className={`grid grid-cols-2 md:grid-cols-1 gap-4 sm:gap-5 shrink-0 border-b md:border-b-0 md:border-r ${dividerColor} pb-5 md:pb-0 md:pr-8 w-full md:w-auto`}>
             <div>
-              <div className={`text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>wpm</div>
-              <div className="text-5xl md:text-6xl font-black font-mono leading-none transition-colors duration-300" style={{ color: themeConfig.primary }}>
+              <div className={`text-[10px] sm:text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>wpm</div>
+              <div className="text-4xl sm:text-5xl md:text-6xl font-black font-mono leading-none transition-colors duration-300" style={{ color: themeConfig.primary }}>
                 {wpm}
               </div>
             </div>
 
             <div>
-              <div className={`text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>acc</div>
-              <div className={`text-4xl md:text-5xl font-black font-mono leading-none ${themeConfig.textMain}`}>
+              <div className={`text-[10px] sm:text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>acc</div>
+              <div className={`text-3xl sm:text-4xl md:text-5xl font-black font-mono leading-none ${themeConfig.textMain}`}>
                 {accuracy}%
               </div>
             </div>
 
-            <div className="grid grid-cols-3 md:grid-cols-1 gap-4">
+            <div className="grid grid-cols-3 md:grid-cols-1 gap-2 sm:gap-4 col-span-2 md:col-span-1">
               <div>
-                <div className={`text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>raw</div>
-                <div className={`text-2xl md:text-3xl font-bold font-mono leading-none ${themeConfig.textMain}`}>
+                <div className={`text-[10px] sm:text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>raw</div>
+                <div className={`text-xl sm:text-2xl md:text-3xl font-bold font-mono leading-none ${themeConfig.textMain}`}>
                   {rawWpm}
                 </div>
               </div>
 
               <div>
-                <div className={`text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>consistency</div>
-                <div className={`text-2xl md:text-3xl font-bold font-mono leading-none ${themeConfig.textMain}`}>
+                <div className={`text-[10px] sm:text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>consistency</div>
+                <div className={`text-xl sm:text-2xl md:text-3xl font-bold font-mono leading-none ${themeConfig.textMain}`}>
                   {consistency}%
                 </div>
               </div>
 
               <div>
-                <div className={`text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>
+                <div className={`text-[10px] sm:text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>
                   burst
                 </div>
-                <div className="text-2xl md:text-3xl font-bold font-mono leading-none transition-colors duration-300" style={{ color: themeConfig.primary }}>
+                <div className="text-xl sm:text-2xl md:text-3xl font-bold font-mono leading-none transition-colors duration-300" style={{ color: themeConfig.primary }}>
                   {burstWpm}
                 </div>
               </div>
@@ -157,10 +157,10 @@ export default function ResultView({ state, onReset }) {
           {/* Area Grafik Analytics */}
           <div className="flex-1 w-full space-y-3">
             <div className="flex items-center justify-between">
-              <div className={`flex items-center gap-2 ${isLight ? 'bg-black/5 border-black/10' : 'bg-white/5 border-white/10'} p-1 rounded-xl border text-xs font-mono`}>
+              <div className={`flex items-center gap-1.5 sm:gap-2 ${isLight ? 'bg-black/5 border-black/10' : 'bg-white/5 border-white/10'} p-1 rounded-xl border text-[11px] sm:text-xs font-mono`}>
                 <button
                   onClick={() => setActiveTab('wpm')}
-                  className={`px-3 py-1 rounded-lg transition-all ${
+                  className={`px-2.5 sm:px-3 py-1 rounded-lg transition-all ${
                     activeTab === 'wpm' 
                       ? `${isLight ? 'bg-black/15 text-black' : 'bg-white/15 text-white'} font-bold` 
                       : `${subTextColor} hover:opacity-100`
@@ -170,7 +170,7 @@ export default function ResultView({ state, onReset }) {
                 </button>
                 <button
                   onClick={() => setActiveTab('burst')}
-                  className={`px-3 py-1 rounded-lg transition-all font-bold ${
+                  className={`px-2.5 sm:px-3 py-1 rounded-lg transition-all font-bold ${
                     activeTab === 'burst' 
                       ? 'shadow-sm' 
                       : `${subTextColor} hover:opacity-100`
@@ -185,13 +185,13 @@ export default function ResultView({ state, onReset }) {
               </div>
             </div>
 
-            <div className="w-full h-[240px]">
+            <div className="w-full h-[200px] sm:h-[240px]">
               {isMounted ? (
                 activeTab === 'wpm' ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart 
                       data={safeChartData} 
-                      margin={{ top: 15, right: 0, left: -10, bottom: 0 }}
+                      margin={{ top: 15, right: 0, left: -15, bottom: 0 }}
                       className="font-mono"
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
@@ -199,23 +199,23 @@ export default function ResultView({ state, onReset }) {
                       <XAxis 
                         dataKey="time" 
                         stroke={strokeColor} 
-                        fontSize={11} 
+                        fontSize={10} 
                         tickLine={false} 
                       />
                       
                       <YAxis 
                         yAxisId="left"
                         stroke={strokeColor} 
-                        fontSize={11} 
+                        fontSize={10} 
                         tickLine={false} 
                         domain={[0, 'auto']} 
                       >
                         <Label 
-                          value="Words per Minute" 
+                          value="WPM" 
                           angle={-90} 
                           position="insideLeft" 
-                          offset={12}
-                          style={{ textAnchor: 'middle', fill: labelColor, fontSize: '11px', fontFamily: 'monospace' }} 
+                          offset={10}
+                          style={{ textAnchor: 'middle', fill: labelColor, fontSize: '10px', fontFamily: 'monospace' }} 
                         />
                       </YAxis>
 
@@ -223,7 +223,7 @@ export default function ResultView({ state, onReset }) {
                         yAxisId="right"
                         orientation="right"
                         stroke={strokeColor} 
-                        fontSize={11} 
+                        fontSize={10} 
                         tickLine={false} 
                         domain={[0, 'auto']}
                         allowDecimals={false}
@@ -232,8 +232,8 @@ export default function ResultView({ state, onReset }) {
                           value="Errors" 
                           angle={90} 
                           position="insideRight" 
-                          offset={12}
-                          style={{ textAnchor: 'middle', fill: labelColor, fontSize: '11px', fontFamily: 'monospace' }} 
+                          offset={10}
+                          style={{ textAnchor: 'middle', fill: labelColor, fontSize: '10px', fontFamily: 'monospace' }} 
                         />
                       </YAxis>
 
@@ -276,12 +276,12 @@ export default function ResultView({ state, onReset }) {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={wordBursts.length > 0 ? wordBursts : [{ word: '-', burst: 0 }]}
-                      margin={{ top: 15, right: 0, left: -10, bottom: 0 }}
+                      margin={{ top: 15, right: 0, left: -15, bottom: 0 }}
                       className="font-mono"
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
-                      <XAxis dataKey="word" stroke={strokeColor} fontSize={11} tickLine={false} />
-                      <YAxis stroke={strokeColor} fontSize={11} tickLine={false} domain={[0, 'auto']} />
+                      <XAxis dataKey="word" stroke={strokeColor} fontSize={10} tickLine={false} />
+                      <YAxis stroke={strokeColor} fontSize={10} tickLine={false} domain={[0, 'auto']} />
                       <Tooltip content={<BurstTooltip primaryColor={themeConfig.primary} isLight={isLight} />} />
                       <Bar dataKey="burst" fill={themeConfig.primary} radius={[4, 4, 0, 0]} />
                     </BarChart>
@@ -297,53 +297,54 @@ export default function ResultView({ state, onReset }) {
 
         </div>
 
-        {/* Extended Stats Bar Sesuai Monkeytype charStats */}
-        <div className={`flex flex-wrap justify-between items-center pt-4 border-t ${dividerColor} text-xs font-mono gap-4`}>
+        {/* Extended Stats Bar */}
+        <div className={`grid grid-cols-2 sm:flex sm:flex-wrap justify-between items-center pt-4 border-t ${dividerColor} text-xs font-mono gap-3 sm:gap-4`}>
           <div>
-            <span className={`block uppercase font-bold text-[10px] ${subTextColor}`}>test type</span>
-            <span className="font-bold" style={{ color: themeConfig.primary }}>
+            <span className={`block uppercase font-bold text-[9px] sm:text-[10px] ${subTextColor}`}>test type</span>
+            <span className="font-bold truncate block" style={{ color: themeConfig.primary }}>
               {testCategory === 'curriculum' ? activeLesson.title : `${modeType} ${modeType === 'time' ? `${timeLimit}s` : `${wordLimit} words`}`}
             </span>
           </div>
           <div>
-            <span className={`block uppercase font-bold text-[10px] ${subTextColor}`}>characters (correct/incorrect/extra/missed)</span>
+            <span className={`block uppercase font-bold text-[9px] sm:text-[10px] ${subTextColor}`}>characters (c/i/e/m)</span>
             <span className="font-bold">
               <span style={{ color: themeConfig.primary }}>{correct}</span> / <span className="text-rose-500">{incorrect}</span> / <span className="text-rose-600">{extra}</span> / <span className="text-amber-600">{missed}</span>
             </span>
           </div>
           <div>
-            <span className={`block uppercase font-bold text-[10px] ${subTextColor}`}>completed words</span>
+            <span className={`block uppercase font-bold text-[9px] sm:text-[10px] ${subTextColor}`}>completed words</span>
             <span className={`font-bold ${themeConfig.textMain}`}>{completedWordsCount} Kata</span>
           </div>
           <div>
-            <span className={`block uppercase font-bold text-[10px] ${subTextColor}`}>time</span>
+            <span className={`block uppercase font-bold text-[9px] sm:text-[10px] ${subTextColor}`}>time</span>
             <span className={`font-bold ${themeConfig.textMain}`}>{elapsedSeconds}s</span>
           </div>
         </div>
       </div>
 
-      <div className="flex justify-center items-center gap-4 pt-2">
+      {/* Action Buttons */}
+      <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4 pt-2">
         <button
           onClick={onReset}
-          className="flex items-center gap-2 px-6 py-3 text-black font-bold rounded-xl transition shadow-lg hover:brightness-110 active:scale-95"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 text-black font-bold rounded-xl transition shadow-lg hover:brightness-110 active:scale-95 text-sm"
           style={{ backgroundColor: themeConfig.primary }}
         >
-          <RotateCcw className="w-5 h-5" /> Latihan Lagi
+          <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" /> Latihan Lagi
         </button>
 
         <button
           onClick={copyResultCardToClipboard}
-          className={`flex items-center gap-2 px-5 py-3 ${isLight ? 'bg-black/10 hover:bg-black/15 text-black border-black/10' : 'bg-white/10 hover:bg-white/20 text-white border-white/10'} font-semibold rounded-xl border transition`}
+          className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 ${isLight ? 'bg-black/10 hover:bg-black/15 text-black border-black/10' : 'bg-white/10 hover:bg-white/20 text-white border-white/10'} font-semibold rounded-xl border transition text-sm`}
           title="Copy Kartu Gambar ke Clipboard"
         >
           {isCopied ? (
             <>
-              <Check className="w-5 h-5 text-emerald-500" />
+              <Check className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />
               <span className="text-emerald-500">Tersalin ke Clipboard!</span>
             </>
           ) : (
             <>
-              <ImageIcon className="w-5 h-5" style={{ color: themeConfig.primary }} />
+              <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: themeConfig.primary }} />
               <span>Copy Gambar Hasil</span>
             </>
           )}

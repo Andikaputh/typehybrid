@@ -38,46 +38,48 @@ export default function HeaderNav({ state, inputRef }) {
   const dropdownBg = isLight ? 'bg-[#e1e1e1] border-black/10' : 'bg-[#18191a] border-white/15';
 
   return (
-    <header className={`flex flex-wrap items-center justify-between gap-4 pb-6 border-b select-none ${isLight ? 'border-black/10' : 'border-white/5'}`}>
+    <header className={`flex flex-col sm:flex-row items-center justify-between gap-4 pb-4 sm:pb-6 border-b select-none ${isLight ? 'border-black/10' : 'border-white/5'}`}>
       {/* Brand Identity */}
-      <div className="flex items-center gap-3">
-        <div 
-          className="p-2.5 rounded-2xl border shadow-inner transition-colors duration-300"
-          style={{ 
-            backgroundColor: `${themeConfig.primary}1A`, 
-            borderColor: `${themeConfig.primary}33` 
-          }}
-        >
-          <Zap className="w-6 h-6 transition-colors duration-300" style={{ color: themeConfig.primary, fill: themeConfig.primary }} />
-        </div>
-        <div>
-          <h1 className={`text-xl font-bold tracking-wider font-mono ${themeConfig.textMain}`}>
-            type<span className="transition-colors duration-300" style={{ color: themeConfig.primary }}>hybrid</span>
-          </h1>
-          <p className={`text-[11px] font-mono opacity-60 tracking-tight ${themeConfig.textMain}`}>
-            Monkeytype Analytics × Typing Study Curriculum
-          </p>
+      <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+        <div className="flex items-center gap-3">
+          <div 
+            className="p-2 sm:p-2.5 rounded-2xl border shadow-inner transition-colors duration-300"
+            style={{ 
+              backgroundColor: `${themeConfig.primary}1A`, 
+              borderColor: `${themeConfig.primary}33` 
+            }}
+          >
+            <Zap className="w-5 h-5 sm:w-6 sm:h-6 transition-colors duration-300" style={{ color: themeConfig.primary, fill: themeConfig.primary }} />
+          </div>
+          <div>
+            <h1 className={`text-lg sm:text-xl font-bold tracking-wider font-mono ${themeConfig.textMain}`}>
+              type<span className="transition-colors duration-300" style={{ color: themeConfig.primary }}>hybrid</span>
+            </h1>
+            <p className={`text-[10px] sm:text-[11px] font-mono opacity-60 tracking-tight ${themeConfig.textMain}`}>
+              Monkeytype Analytics
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Control Bar */}
-      <div className={`flex items-center gap-2 backdrop-blur-md p-1.5 rounded-2xl border shadow-lg text-xs font-mono transition-colors duration-300 ${themeConfig.cardBg} ${themeConfig.cardBorder}`}>
+      {/* Control Bar - Horizontal Scroll di Mobile */}
+      <div className={`flex items-center gap-2 max-w-full overflow-x-auto no-scrollbar p-1.5 rounded-2xl border shadow-lg text-xs font-mono transition-colors duration-300 ${themeConfig.cardBg} ${themeConfig.cardBorder}`}>
         {/* Category Switcher */}
-        <div className={`flex p-1 rounded-xl ${isLight ? 'bg-black/5' : 'bg-black/30'}`}>
+        <div className={`flex p-1 rounded-xl shrink-0 ${isLight ? 'bg-black/5' : 'bg-black/30'}`}>
           <button
             onClick={() => { setTestCategory('curriculum'); handleFocusInput(); }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200 font-medium whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg transition-all duration-200 font-medium whitespace-nowrap ${
               testCategory === 'curriculum' 
                 ? 'text-black font-semibold shadow-md' 
                 : `${controlSubText}${buttonHoverBg}`
             }`}
             style={{ backgroundColor: testCategory === 'curriculum' ? themeConfig.primary : 'transparent' }}
           >
-            <Layers className="w-3.5 h-3.5" /> Modul Belajar
+            <Layers className="w-3.5 h-3.5" /> Modul
           </button>
           <button
             onClick={() => { setTestCategory('free'); handleFocusInput(); }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200 font-medium whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg transition-all duration-200 font-medium whitespace-nowrap ${
               testCategory === 'free' 
                 ? 'text-black font-semibold shadow-md' 
                 : `${controlSubText}${buttonHoverBg}`
@@ -88,10 +90,10 @@ export default function HeaderNav({ state, inputRef }) {
           </button>
         </div>
 
-        <div className={`h-4 w-[1px] my-auto ${isLight ? 'bg-black/10' : 'bg-white/10'}`} />
+        <div className={`h-4 w-[1px] my-auto shrink-0 ${isLight ? 'bg-black/10' : 'bg-white/10'}`} />
 
         {/* Sound Profile Switcher */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           <button 
             onClick={() => { setSoundEnabled(!soundEnabled); handleFocusInput(); }} 
             className={`p-1.5 rounded-xl transition ${controlSubText} ${buttonHoverBg}`}
@@ -108,10 +110,10 @@ export default function HeaderNav({ state, inputRef }) {
             <div className="relative" ref={soundRef}>
               <button
                 onClick={() => { setOpenSound(!openSound); setOpenTheme(false); }}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition ${controlSubText} ${isLight ? 'bg-black/5 hover:bg-black/10 border-black/5' : 'bg-black/30 hover:bg-black/50 border-white/5'}`}
+                className={`flex items-center gap-1.5 px-2 py-1.5 rounded-xl border transition ${controlSubText} ${isLight ? 'bg-black/5 hover:bg-black/10 border-black/5' : 'bg-black/30 hover:bg-black/50 border-white/5'}`}
               >
                 <Music className="w-3.5 h-3.5" style={{ color: themeConfig.primary }} />
-                <span className="text-[11px]">{SOUND_PROFILES[soundProfile]?.name || soundProfile}</span>
+                <span className="text-[11px] hidden sm:inline">{SOUND_PROFILES[soundProfile]?.name || soundProfile}</span>
                 <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${openSound ? 'rotate-180' : 'opacity-40'}`} style={{ color: openSound ? themeConfig.primary : undefined }} />
               </button>
 
@@ -146,16 +148,16 @@ export default function HeaderNav({ state, inputRef }) {
           )}
         </div>
 
-        <div className={`h-4 w-[1px] my-auto ${isLight ? 'bg-black/10' : 'bg-white/10'}`} />
+        <div className={`h-4 w-[1px] my-auto shrink-0 ${isLight ? 'bg-black/10' : 'bg-white/10'}`} />
 
         {/* Dynamic Theme Picker Dropdown */}
-        <div className="relative" ref={themeRef}>
+        <div className="relative shrink-0" ref={themeRef}>
           <button
             onClick={() => { setOpenTheme(!openTheme); setOpenSound(false); }}
             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition ${controlSubText} ${isLight ? 'bg-black/5 hover:bg-black/10 border-black/5' : 'bg-black/30 hover:bg-black/50 border-white/5'}`}
           >
             <Palette className="w-3.5 h-3.5 opacity-60" />
-            <span className="text-[11px]">{themeConfig.name}</span>
+            <span className="text-[11px] hidden sm:inline">{themeConfig.name}</span>
             <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${openTheme ? 'rotate-180' : 'opacity-40'}`} style={{ color: openTheme ? themeConfig.primary : undefined }} />
           </button>
 
