@@ -105,14 +105,24 @@ export default function ResultView({ state, onReset }) {
   const [correct, incorrect, extra, missed] = charStats || [0, 0, 0, 0];
 
   return (
-    <div className="py-4 sm:py-6 space-y-4 sm:space-y-6 animate-fade-in">
+    <div className="py-2 sm:py-6 space-y-4 sm:space-y-6 animate-fade-in">
       <div 
         ref={resultCardRef}
-        className={`${themeConfig.cardBg} p-4 sm:p-8 rounded-3xl border ${themeConfig.cardBorder} space-y-6 shadow-2xl transition-colors duration-300`}
+        className={`${themeConfig.cardBg} p-4 sm:p-8 rounded-3xl border ${themeConfig.cardBorder} space-y-5 sm:space-y-6 shadow-2xl transition-colors duration-300`}
       >
+        {/* Header Hasil untuk Mobile */}
+        <div className={`flex items-center justify-between pb-3 border-b ${dividerColor} text-xs font-mono`}>
+          <span className={`uppercase font-bold tracking-wider text-[10px] sm:text-xs ${subTextColor}`}>
+            Hasil Latihan Pengetikan
+          </span>
+          <span className="font-bold truncate max-w-[180px] sm:max-w-none text-right" style={{ color: themeConfig.primary }}>
+            {testCategory === 'curriculum' ? activeLesson.title : `${modeType} ${modeType === 'time' ? `${timeLimit}s` : `${wordLimit} kata`}`}
+          </span>
+        </div>
+
         <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8">
           
-          {/* Main Displays: WPM, ACC, RAW, CONSISTENCY, BURST */}
+          {/* Main Display Grid: WPM, ACC, RAW, CONSISTENCY, BURST */}
           <div className={`grid grid-cols-2 md:grid-cols-1 gap-4 sm:gap-5 shrink-0 border-b md:border-b-0 md:border-r ${dividerColor} pb-5 md:pb-0 md:pr-8 w-full md:w-auto`}>
             <div>
               <div className={`text-[10px] sm:text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>wpm</div>
@@ -128,7 +138,7 @@ export default function ResultView({ state, onReset }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 md:grid-cols-1 gap-2 sm:gap-4 col-span-2 md:col-span-1">
+            <div className="grid grid-cols-3 md:grid-cols-1 gap-2 sm:gap-4 col-span-2 md:col-span-1 pt-1 md:pt-0">
               <div>
                 <div className={`text-[10px] sm:text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>raw</div>
                 <div className={`text-xl sm:text-2xl md:text-3xl font-bold font-mono leading-none ${themeConfig.textMain}`}>
@@ -157,10 +167,10 @@ export default function ResultView({ state, onReset }) {
           {/* Area Grafik Analytics */}
           <div className="flex-1 w-full space-y-3">
             <div className="flex items-center justify-between">
-              <div className={`flex items-center gap-1.5 sm:gap-2 ${isLight ? 'bg-black/5 border-black/10' : 'bg-white/5 border-white/10'} p-1 rounded-xl border text-[11px] sm:text-xs font-mono`}>
+              <div className={`flex items-center gap-1 sm:gap-2 ${isLight ? 'bg-black/5 border-black/10' : 'bg-white/5 border-white/10'} p-1 rounded-xl border text-[11px] sm:text-xs font-mono w-full sm:w-auto`}>
                 <button
                   onClick={() => setActiveTab('wpm')}
-                  className={`px-2.5 sm:px-3 py-1 rounded-lg transition-all ${
+                  className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg transition-all ${
                     activeTab === 'wpm' 
                       ? `${isLight ? 'bg-black/15 text-black' : 'bg-white/15 text-white'} font-bold` 
                       : `${subTextColor} hover:opacity-100`
@@ -170,7 +180,7 @@ export default function ResultView({ state, onReset }) {
                 </button>
                 <button
                   onClick={() => setActiveTab('burst')}
-                  className={`px-2.5 sm:px-3 py-1 rounded-lg transition-all font-bold ${
+                  className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg transition-all font-bold ${
                     activeTab === 'burst' 
                       ? 'shadow-sm' 
                       : `${subTextColor} hover:opacity-100`
@@ -185,13 +195,13 @@ export default function ResultView({ state, onReset }) {
               </div>
             </div>
 
-            <div className="w-full h-[200px] sm:h-[240px]">
+            <div className="w-full h-[190px] sm:h-[240px]">
               {isMounted ? (
                 activeTab === 'wpm' ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart 
                       data={safeChartData} 
-                      margin={{ top: 15, right: 0, left: -15, bottom: 0 }}
+                      margin={{ top: 15, right: 0, left: -18, bottom: 0 }}
                       className="font-mono"
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
@@ -214,7 +224,7 @@ export default function ResultView({ state, onReset }) {
                           value="WPM" 
                           angle={-90} 
                           position="insideLeft" 
-                          offset={10}
+                          offset={12}
                           style={{ textAnchor: 'middle', fill: labelColor, fontSize: '10px', fontFamily: 'monospace' }} 
                         />
                       </YAxis>
@@ -229,10 +239,10 @@ export default function ResultView({ state, onReset }) {
                         allowDecimals={false}
                       >
                         <Label 
-                          value="Errors" 
+                          value="Err" 
                           angle={90} 
                           position="insideRight" 
-                          offset={10}
+                          offset={12}
                           style={{ textAnchor: 'middle', fill: labelColor, fontSize: '10px', fontFamily: 'monospace' }} 
                         />
                       </YAxis>
@@ -276,7 +286,7 @@ export default function ResultView({ state, onReset }) {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={wordBursts.length > 0 ? wordBursts : [{ word: '-', burst: 0 }]}
-                      margin={{ top: 15, right: 0, left: -15, bottom: 0 }}
+                      margin={{ top: 15, right: 0, left: -18, bottom: 0 }}
                       className="font-mono"
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
@@ -298,13 +308,7 @@ export default function ResultView({ state, onReset }) {
         </div>
 
         {/* Extended Stats Bar */}
-        <div className={`grid grid-cols-2 sm:flex sm:flex-wrap justify-between items-center pt-4 border-t ${dividerColor} text-xs font-mono gap-3 sm:gap-4`}>
-          <div>
-            <span className={`block uppercase font-bold text-[9px] sm:text-[10px] ${subTextColor}`}>test type</span>
-            <span className="font-bold truncate block" style={{ color: themeConfig.primary }}>
-              {testCategory === 'curriculum' ? activeLesson.title : `${modeType} ${modeType === 'time' ? `${timeLimit}s` : `${wordLimit} words`}`}
-            </span>
-          </div>
+        <div className={`grid grid-cols-2 sm:flex sm:flex-wrap justify-between items-center pt-3 sm:pt-4 border-t ${dividerColor} text-xs font-mono gap-3 sm:gap-4`}>
           <div>
             <span className={`block uppercase font-bold text-[9px] sm:text-[10px] ${subTextColor}`}>characters (c/i/e/m)</span>
             <span className="font-bold">
@@ -316,35 +320,35 @@ export default function ResultView({ state, onReset }) {
             <span className={`font-bold ${themeConfig.textMain}`}>{completedWordsCount} Kata</span>
           </div>
           <div>
-            <span className={`block uppercase font-bold text-[9px] sm:text-[10px] ${subTextColor}`}>time</span>
+            <span className={`block uppercase font-bold text-[9px] sm:text-[10px] ${subTextColor}`}>time spent</span>
             <span className={`font-bold ${themeConfig.textMain}`}>{elapsedSeconds}s</span>
           </div>
         </div>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4 pt-2">
+      <div className="flex flex-col sm:flex-row justify-center items-center gap-3 pt-1">
         <button
           onClick={onReset}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 text-black font-bold rounded-xl transition shadow-lg hover:brightness-110 active:scale-95 text-sm"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 text-black font-bold rounded-2xl transition shadow-lg hover:brightness-110 active:scale-95 text-sm"
           style={{ backgroundColor: themeConfig.primary }}
         >
-          <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" /> Latihan Lagi
+          <RotateCcw className="w-5 h-5" /> Latihan Lagi
         </button>
 
         <button
           onClick={copyResultCardToClipboard}
-          className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 ${isLight ? 'bg-black/10 hover:bg-black/15 text-black border-black/10' : 'bg-white/10 hover:bg-white/20 text-white border-white/10'} font-semibold rounded-xl border transition text-sm`}
+          className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3.5 ${isLight ? 'bg-black/10 hover:bg-black/15 text-black border-black/10' : 'bg-white/10 hover:bg-white/20 text-white border-white/10'} font-semibold rounded-2xl border transition text-sm`}
           title="Copy Kartu Gambar ke Clipboard"
         >
           {isCopied ? (
             <>
-              <Check className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />
+              <Check className="w-5 h-5 text-emerald-500" />
               <span className="text-emerald-500">Tersalin ke Clipboard!</span>
             </>
           ) : (
             <>
-              <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: themeConfig.primary }} />
+              <ImageIcon className="w-5 h-5" style={{ color: themeConfig.primary }} />
               <span>Copy Gambar Hasil</span>
             </>
           )}

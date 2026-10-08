@@ -19,7 +19,7 @@ export default function TypingApp() {
   const themeConfig = state.themeConfig;
   const isLight = themeConfig.isLight;
 
-  // Auto-Focus Input
+  // Auto-Focus
   useEffect(() => {
     if (!state.isFinished && containerRef.current) {
       containerRef.current.focus();
@@ -34,7 +34,7 @@ export default function TypingApp() {
     if (!activeWordRef.current || !wordsContainerRef.current) return;
 
     const activeEl = activeWordRef.current;
-    const LINE_HEIGHT = 48; // Disesuaikan dengan height baris mobile/desktop
+    const LINE_HEIGHT = 44; // Disesuaikan dengan tinggi baris mobile
     const wordTop = activeEl.offsetTop;
     const currentLine = Math.floor(wordTop / LINE_HEIGHT);
 
@@ -52,26 +52,27 @@ export default function TypingApp() {
   }, [state.isStarted]);
 
   return (
-    <div className={`min-h-screen py-4 px-3 sm:py-8 sm:px-8 md:px-12 transition-colors duration-300 font-sans ${themeConfig.bg} ${themeConfig.textMain}`}>
-      <div className="max-w-5xl mx-auto space-y-6 sm:space-y-8">
+    <div className={`min-h-screen py-3 sm:py-8 px-3 sm:px-8 md:px-12 transition-colors duration-300 font-sans ${themeConfig.bg} ${themeConfig.textMain}`}>
+      <div className="max-w-5xl mx-auto space-y-3 sm:space-y-6">
         
+        {/* Header & Config Bar */}
         <HeaderNav state={state} inputRef={containerRef} />
         <ConfigBar state={state} inputRef={containerRef} />
 
         {!state.isFinished ? (
-          <div className="flex items-center justify-center py-4 sm:py-8 min-h-[220px] sm:min-h-[280px]">
-            {/* Core Focused Typing Container */}
+          <div className="flex items-center justify-center py-2 sm:py-6">
+            {/* Core Focused Typing Container - Posisi Dinaikkan Lebih Tinggi di Mobile */}
             <div
               ref={containerRef}
               tabIndex={0}
               onKeyDown={actions.handleKeyDown}
               onClick={() => containerRef.current && containerRef.current.focus()}
-              className={`relative w-full cursor-text font-mono text-xl sm:text-2xl md:text-3xl leading-none tracking-wider select-none h-[144px] overflow-hidden rounded-2xl px-4 sm:px-6 py-0 border shadow-inner transition-colors duration-300 outline-none ${themeConfig.cardBg} ${themeConfig.cardBorder}`}
+              className={`relative w-full cursor-text font-mono text-lg sm:text-2xl md:text-3xl leading-none tracking-wider select-none h-[132px] overflow-hidden rounded-2xl px-3 sm:px-6 py-0 border shadow-inner transition-colors duration-300 outline-none ${themeConfig.cardBg} ${themeConfig.cardBorder}`}
             >
               <div
                 ref={wordsContainerRef}
                 style={{ transform: `translateY(-${lineScrollOffset}px)` }}
-                className="flex flex-wrap gap-x-3 sm:gap-x-4 transition-transform duration-200 ease-out font-mono w-full"
+                className="flex flex-wrap gap-x-2.5 sm:gap-x-4 transition-transform duration-200 ease-out font-mono w-full"
               >
                 {state.words.map((targetWord, wIdx) => {
                   const typedWord = state.typedWords[wIdx] || '';
@@ -107,7 +108,7 @@ export default function TypingApp() {
                     <span
                       key={wIdx}
                       ref={isCurrentWord ? activeWordRef : null}
-                      className="inline-flex relative h-[48px] items-center my-0"
+                      className="inline-flex relative h-[44px] items-center my-0"
                     >
                       {charList.map((item, cIdx) => {
                         let charStyle = isLight ? 'opacity-35' : 'opacity-25';
@@ -126,7 +127,7 @@ export default function TypingApp() {
                           <span key={cIdx} className={`relative ${charStyle}`}>
                             {item.isCaret && (
                               <span 
-                                className="absolute -left-0.5 top-2 bottom-2 w-[3px] animate-pulse rounded-full" 
+                                className="absolute -left-0.5 top-1.5 bottom-1.5 w-[3px] animate-pulse rounded-full" 
                                 style={{
                                   backgroundColor: themeConfig.primary,
                                   boxShadow: `0 0 8px ${themeConfig.primary}`
@@ -141,7 +142,7 @@ export default function TypingApp() {
                       {isCurrentWord && typedWord.length >= targetWord.length && (
                         <span className="relative">
                           <span 
-                            className="absolute -left-0.5 top-2 bottom-2 w-[3px] animate-pulse rounded-full" 
+                            className="absolute -left-0.5 top-1.5 bottom-1.5 w-[3px] animate-pulse rounded-full" 
                             style={{
                               backgroundColor: themeConfig.primary,
                               boxShadow: `0 0 8px ${themeConfig.primary}`
@@ -160,13 +161,13 @@ export default function TypingApp() {
         )}
 
         {!state.isFinished && (
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-1.5 pt-1">
             <button
               onClick={() => {
                 actions.resetTest();
                 if (containerRef.current) containerRef.current.focus();
               }}
-              className={`p-3 rounded-2xl border transition-all duration-200 shadow-md hover:scale-105 active:scale-95 ${themeConfig.cardBg} ${themeConfig.cardBorder}`}
+              className={`p-2.5 sm:p-3 rounded-2xl border transition-all duration-200 shadow-md hover:scale-105 active:scale-95 ${themeConfig.cardBg} ${themeConfig.cardBorder}`}
               style={{ color: themeConfig.primary }}
               title="Acak Ulang Kata (Tekan Tab)"
             >
@@ -178,7 +179,7 @@ export default function TypingApp() {
           </div>
         )}
 
-        {/* Visual Keyboard disembunyikan di layar HP (hidden di < md) */}
+        {/* Visual Keyboard disembunyikan di HP */}
         <div className="hidden md:block">
           <VisualKeyboard 
             getNextChar={actions.getNextChar} 
