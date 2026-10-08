@@ -11,6 +11,7 @@ import { RotateCcw } from 'lucide-react';
 export default function TypingApp() {
   const { state, actions } = useTypingEngine();
   const containerRef = useRef(null);
+  const hiddenInputRef = useRef(null);
   const wordsContainerRef = useRef(null);
   const activeWordRef = useRef(null);
 
@@ -19,10 +20,20 @@ export default function TypingApp() {
   const themeConfig = state.themeConfig;
   const isLight = themeConfig.isLight;
 
+  // Handler untuk memfokuskan keyboard HP saat area diketik/diklik
+  const triggerMobileKeyboard = () => {
+    if (hiddenInputRef.current) {
+      hiddenInputRef.current.focus();
+    }
+    if (containerRef.current) {
+      containerRef.current.focus();
+    }
+  };
+
   // Auto-Focus
   useEffect(() => {
-    if (!state.isFinished && containerRef.current) {
-      containerRef.current.focus();
+    if (!state.isFinished) {
+      triggerMobileKeyboard();
     }
   }, [
     state.testCategory, state.modeType, state.timeLimit, state.wordLimit,
@@ -34,7 +45,7 @@ export default function TypingApp() {
     if (!activeWordRef.current || !wordsContainerRef.current) return;
 
     const activeEl = activeWordRef.current;
-    const LINE_HEIGHT = 44; // Disesuaikan dengan tinggi baris mobile
+    const LINE_HEIGHT = 44;
     const wordTop = activeEl.offsetTop;
     const currentLine = Math.floor(wordTop / LINE_HEIGHT);
 
@@ -53,6 +64,18 @@ export default function TypingApp() {
 
   return (
     <div className={`min-h-screen py-3 sm:py-8 px-3 sm:px-8 md:px-12 transition-colors duration-300 font-sans ${themeConfig.bg} ${themeConfig.textMain}`}>
+      
+      {/* Hidden Input khusus untuk memicu Virtual Keyboard HP saat ditekan */}
+      <input
+        ref={hiddenInputRef}
+        type="text"
+        className="opacity-0 absolute -z-50 w-0 h-0 pointer-events-none"
+        autoCapitalize="none"
+        autoComplete="off"
+        autoCorrect="off"
+        spellCheck="false"
+      />
+
       <div className="max-w-5xl mx-auto space-y-3 sm:space-y-6">
         
         {/* Header & Config Bar */}
@@ -61,12 +84,13 @@ export default function TypingApp() {
 
         {!state.isFinished ? (
           <div className="flex items-center justify-center py-2 sm:py-6">
-            {/* Core Focused Typing Container - Posisi Dinaikkan Lebih Tinggi di Mobile */}
+            {/* Core Focused Typing Container */}
             <div
               ref={containerRef}
               tabIndex={0}
               onKeyDown={actions.handleKeyDown}
-              onClick={() => containerRef.current && containerRef.current.focus()}
+              onClick={triggerMobileKeyboard}
+              onTouchStart={triggerMobileKeyboard}
               className={`relative w-full cursor-text font-mono text-lg sm:text-2xl md:text-3xl leading-none tracking-wider select-none h-[132px] overflow-hidden rounded-2xl px-3 sm:px-6 py-0 border shadow-inner transition-colors duration-300 outline-none ${themeConfig.cardBg} ${themeConfig.cardBorder}`}
             >
               <div
@@ -165,7 +189,7 @@ export default function TypingApp() {
             <button
               onClick={() => {
                 actions.resetTest();
-                if (containerRef.current) containerRef.current.focus();
+                triggerMobileKeyboard();
               }}
               className={`p-2.5 sm:p-3 rounded-2xl border transition-all duration-200 shadow-md hover:scale-105 active:scale-95 ${themeConfig.cardBg} ${themeConfig.cardBorder}`}
               style={{ color: themeConfig.primary }}
