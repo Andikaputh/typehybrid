@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useTypingEngine } from '@/hooks/useTypingEngine';
 import VisualKeyboard from './VisualKeyboard';
 import ResultView from './ResultView';
@@ -11,7 +11,7 @@ import { RotateCcw } from 'lucide-react';
 export default function TypingApp() {
   const { state, actions } = useTypingEngine();
   const containerRef = useRef(null);
-  const hiddenInputRef = useRef(null);
+  const mobileInputRef = useRef(null);
   const wordsContainerRef = useRef(null);
   const activeWordRef = useRef(null);
 
@@ -20,37 +20,68 @@ export default function TypingApp() {
   const themeConfig = state.themeConfig;
   const isLight = themeConfig.isLight;
 
-  // Handler untuk memfokuskan keyboard HP saat area diketik/diklik
-  const triggerMobileKeyboard = () => {
-    if (hiddenInputRef.current) {
-      hiddenInputRef.current.focus();
+  // Fokuskan area pengetikan yang sesuai: containerRef di Desktop, mobileInputRef di Mobile
+  const focusTypingArea = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    if (window.innerWidth >= 768) {
+      if (containerRef.current) {
+        containerRef.current.focus();
+      }
+    } else {
+      if (mobileInputRef.current) {
+        mobileInputRef.current.focus();
+      }
     }
-    if (containerRef.current) {
-      containerRef.current.focus();
-    }
-  };
+  }, []);
 
-  // Auto-Focus
+  // Auto-Focus saat inisialisasi atau saat konfigurasi tes berubah
   useEffect(() => {
     if (!state.isFinished) {
-      triggerMobileKeyboard();
+      focusTypingArea();
     }
   }, [
     state.testCategory, state.modeType, state.timeLimit, state.wordLimit,
-    state.difficulty, state.selectedLessonId, state.selectedSubLessonId, state.isFinished
+    state.difficulty, state.selectedLessonId, state.selectedSubLessonId, state.isFinished,
+    focusTypingArea
   ]);
 
-  // Auto-Scroll Multi-Baris Presisi
+  // Global keydown listener untuk desktop: Tab reset & auto refocus
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      // Tombol Tab untuk reset instan
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        actions.resetTest();
+        focusTypingArea();
+        return;
+      }
+
+      // Di desktop, arahkan fokus ke container pengetikan jika user mengetik saat tidak berada di elemen input lain
+      if (typeof window !== 'undefined' && window.innerWidth >= 768 && !state.isFinished) {
+        const activeTag = document.activeElement?.tagName?.toLowerCase();
+        if (activeTag !== 'input' && activeTag !== 'textarea' && activeTag !== 'button' && activeTag !== 'select') {
+          if (document.activeElement !== containerRef.current) {
+            containerRef.current?.focus();
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [actions, state.isFinished, focusTypingArea]);
+
+  // Auto-Scroll Multi-Baris Presisi Adaptif
   useEffect(() => {
     if (!activeWordRef.current || !wordsContainerRef.current) return;
 
     const activeEl = activeWordRef.current;
-    const LINE_HEIGHT = 44;
+    const lineHeight = activeEl.offsetHeight || 44;
     const wordTop = activeEl.offsetTop;
-    const currentLine = Math.floor(wordTop / LINE_HEIGHT);
+    const currentLine = Math.floor(wordTop / lineHeight);
 
     if (currentLine >= 1) {
-      setLineScrollOffset((currentLine - 1) * LINE_HEIGHT);
+      setLineScrollOffset((currentLine - 1) * lineHeight);
     } else {
       setLineScrollOffset(0);
     }
@@ -63,40 +94,53 @@ export default function TypingApp() {
   }, [state.isStarted]);
 
   return (
-    <div className={`min-h-screen py-3 sm:py-8 px-3 sm:px-8 md:px-12 transition-colors duration-300 font-sans ${themeConfig.bg} ${themeConfig.textMain}`}>
-      
-      {/* Hidden Input khusus untuk memicu Virtual Keyboard HP saat ditekan */}
-      <input
-        ref={hiddenInputRef}
-        type="text"
-        className="opacity-0 absolute -z-50 w-0 h-0 pointer-events-none"
-        autoCapitalize="none"
-        autoComplete="off"
-        autoCorrect="off"
-        spellCheck="false"
-      />
-
-      <div className="max-w-5xl mx-auto space-y-3 sm:space-y-6">
+    <div className={`min-h-screen pt-2 sm:pt-6 pb-6 px-3 sm:px-8 md:px-12 transition-colors duration-300 font-sans ${themeConfig.bg} ${themeConfig.textMain}`}>
+      <div className="max-w-5xl mx-auto space-y-2 sm:space-y-6">
         
-        {/* Header & Config Bar */}
-        <HeaderNav state={state} inputRef={containerRef} />
-        <ConfigBar state={state} inputRef={containerRef} />
+        {/* Header Navigation (Focus Mode: meredup/sembunyi di mobile saat mengetik) */}
+        <HeaderNav state={state} inputRef={containerRef} isStarted={state.isStarted} />
+
+        {/* Config Bar (Focus Mode: meredup/sembunyi di mobile saat mengetik) */}
+        <ConfigBar state={state} inputRef={containerRef} isStarted={state.isStarted} />
 
         {!state.isFinished ? (
-          <div className="flex items-center justify-center py-2 sm:py-6">
-            {/* Core Focused Typing Container */}
+          <div className="flex items-center justify-center pt-1 pb-1 sm:py-6">
+            {/* Core Focused Typing Container (Desktop & Mobile Wrapper) */}
             <div
               ref={containerRef}
               tabIndex={0}
               onKeyDown={actions.handleKeyDown}
-              onClick={triggerMobileKeyboard}
-              onTouchStart={triggerMobileKeyboard}
-              className={`relative w-full cursor-text font-mono text-lg sm:text-2xl md:text-3xl leading-none tracking-wider select-none h-[132px] overflow-hidden rounded-2xl px-3 sm:px-6 py-0 border shadow-inner transition-colors duration-300 outline-none ${themeConfig.cardBg} ${themeConfig.cardBorder}`}
+              onClick={focusTypingArea}
+              className={`relative w-full cursor-text font-mono text-base sm:text-2xl md:text-3xl leading-none tracking-wider select-none h-[116px] sm:h-[132px] overflow-hidden rounded-2xl px-3 sm:px-6 py-0 border shadow-inner transition-colors duration-300 outline-none ${themeConfig.cardBg} ${themeConfig.cardBorder}`}
             >
+              {/* Hidden Input khusus Mobile: Menangkap Virtual Keyboard HP & Sinkronisasi Real-Time */}
+              <input
+                ref={mobileInputRef}
+                type="text"
+                value={state.typedWords[state.currentWordIdx] || ''}
+                onChange={(e) => actions.handleSyncInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Backspace' && (!e.target.value || e.target.value.length === 0)) {
+                    actions.handleBackspace();
+                  } else if (e.key === 'Tab') {
+                    e.preventDefault();
+                    actions.resetTest();
+                    focusTypingArea();
+                  }
+                }}
+                className="absolute inset-0 w-full h-full opacity-0 z-10 cursor-default md:pointer-events-none md:z-[-1]"
+                autoCapitalize="none"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck="false"
+                enterKeyHint="next"
+                inputMode="text"
+              />
+
               <div
                 ref={wordsContainerRef}
                 style={{ transform: `translateY(-${lineScrollOffset}px)` }}
-                className="flex flex-wrap gap-x-2.5 sm:gap-x-4 transition-transform duration-200 ease-out font-mono w-full"
+                className="flex flex-wrap gap-x-2 sm:gap-x-4 transition-transform duration-200 ease-out font-mono w-full"
               >
                 {state.words.map((targetWord, wIdx) => {
                   const typedWord = state.typedWords[wIdx] || '';
@@ -132,26 +176,26 @@ export default function TypingApp() {
                     <span
                       key={wIdx}
                       ref={isCurrentWord ? activeWordRef : null}
-                      className="inline-flex relative h-[44px] items-center my-0"
+                      className="inline-flex relative h-[38px] sm:h-[44px] items-center my-0"
                     >
                       {charList.map((item, cIdx) => {
-                        let charStyle = isLight ? 'opacity-35' : 'opacity-25';
+                        let charStyle = isLight ? 'text-[#282a2e]/45' : 'text-white/30';
 
                         if (item.status === 'correct') {
-                          charStyle = 'opacity-100 font-medium text-emerald-400';
+                          charStyle = isLight ? 'text-emerald-700 font-semibold' : 'text-emerald-400 font-medium';
                         } else if (item.status === 'incorrect') {
-                          charStyle = 'text-rose-500 bg-rose-500/10 rounded px-0.5';
+                          charStyle = 'text-rose-600 bg-rose-500/15 rounded px-0.5 font-medium';
                         } else if (item.status === 'extra') {
                           charStyle = 'text-rose-700 bg-rose-950/40 rounded px-0.5 font-bold';
                         } else if (item.status === 'missed') {
-                          charStyle = 'text-amber-500/60 underline decoration-rose-500 decoration-2';
+                          charStyle = isLight ? 'text-amber-800 underline decoration-rose-500 decoration-2' : 'text-amber-500/70 underline decoration-rose-500 decoration-2';
                         }
 
                         return (
                           <span key={cIdx} className={`relative ${charStyle}`}>
                             {item.isCaret && (
                               <span 
-                                className="absolute -left-0.5 top-1.5 bottom-1.5 w-[3px] animate-pulse rounded-full" 
+                                className="absolute -left-0.5 top-1 bottom-1 sm:top-1.5 sm:bottom-1.5 w-[2.5px] sm:w-[3px] animate-pulse rounded-full" 
                                 style={{
                                   backgroundColor: themeConfig.primary,
                                   boxShadow: `0 0 8px ${themeConfig.primary}`
@@ -166,7 +210,7 @@ export default function TypingApp() {
                       {isCurrentWord && typedWord.length >= targetWord.length && (
                         <span className="relative">
                           <span 
-                            className="absolute -left-0.5 top-1.5 bottom-1.5 w-[3px] animate-pulse rounded-full" 
+                            className="absolute -left-0.5 top-1 bottom-1 sm:top-1.5 sm:bottom-1.5 w-[2.5px] sm:w-[3px] animate-pulse rounded-full" 
                             style={{
                               backgroundColor: themeConfig.primary,
                               boxShadow: `0 0 8px ${themeConfig.primary}`
@@ -189,21 +233,21 @@ export default function TypingApp() {
             <button
               onClick={() => {
                 actions.resetTest();
-                triggerMobileKeyboard();
+                focusTypingArea();
               }}
               className={`p-2.5 sm:p-3 rounded-2xl border transition-all duration-200 shadow-md hover:scale-105 active:scale-95 ${themeConfig.cardBg} ${themeConfig.cardBorder}`}
               style={{ color: themeConfig.primary }}
               title="Acak Ulang Kata (Tekan Tab)"
             >
-              <RotateCcw className="w-5 h-5" />
+              <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
-            <span className="text-[10px] font-mono opacity-50 tracking-wider hidden sm:inline">
+            <span className="text-[10px] font-mono opacity-60 tracking-wider hidden sm:inline">
               tekan <kbd className={`px-1.5 py-0.5 rounded border ${isLight ? 'bg-black/5 border-black/10 text-black/80' : 'bg-white/10 border-white/10 text-white/80'}`}>Tab</kbd> untuk mengacak ulang
             </span>
           </div>
         )}
 
-        {/* Visual Keyboard disembunyikan di HP */}
+        {/* Visual Keyboard otomatis tersembunyi di HP (hidden md:block) */}
         <div className="hidden md:block">
           <VisualKeyboard 
             getNextChar={actions.getNextChar} 
