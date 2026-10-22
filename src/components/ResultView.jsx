@@ -1,350 +1,176 @@
 'use client';
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { RotateCcw, Image as ImageIcon, Check } from 'lucide-react';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Label } from 'recharts';
 import { toBlob } from 'html-to-image';
 
-const CustomTooltip = ({ active, payload, label, primaryColor, isLight }) => {
-  if (active && payload && payload.length) {
-    const errorData = payload.find(p => p.dataKey === 'errors');
-    return (
-      <div className={`${isLight ? 'bg-[#d1d0c5] border-black/20 text-[#323437]' : 'bg-[#18191a] border-white/15 text-white'} p-2.5 rounded-lg font-mono text-xs shadow-2xl space-y-1`}>
-        <div className={`${isLight ? 'text-black/50 border-black/10' : 'text-white/40 border-white/10'} border-b pb-1 mb-1 font-bold`}>Detik ke-{label}s</div>
-        <div className="font-bold" style={{ color: primaryColor }}>WPM: {payload[0]?.value}</div>
-        <div className="opacity-70" style={{ color: primaryColor }}>Raw: {payload[1]?.value}</div>
-        {errorData && errorData.value !== null && errorData.value !== undefined && (
-          <div className="text-rose-500 font-bold flex items-center gap-1 mt-1">
-            <span>✖ {errorData.value} Kesalahan pada detik ini</span>
-          </div>
-        )}
-      </div>
-    );
-  }
-  return null;
-};
-
-const BurstTooltip = ({ active, payload, primaryColor, isLight }) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    return (
-      <div className={`${isLight ? 'bg-[#d1d0c5] border-black/20 text-[#323437]' : 'bg-[#18191a] border-white/15 text-white'} p-2.5 rounded-lg font-mono text-xs shadow-2xl space-y-1`}>
-        <div className={`${isLight ? 'text-black/50 border-black/10' : 'text-white/40 border-white/10'} border-b pb-1 font-bold`}>Kata: "{data.word}"</div>
-        <div className="font-bold" style={{ color: primaryColor }}>Burst Speed: {data.burst} WPM</div>
-      </div>
-    );
-  }
-  return null;
-};
-
-const RedCrossDot = (props) => {
-  const { cx, cy, payload } = props;
-  if (!cx || !cy || payload?.errors === null || payload?.errors === undefined) return null;
-  return (
-    <g transform={`translate(${cx - 5},${cy - 5})`}>
-      <path d="M 0 0 L 10 10 M 10 0 L 0 10" stroke="#ca4754" strokeWidth="2.5" strokeLinecap="round" />
-    </g>
-  );
-};
+const ResultChart = dynamic(() => import('./ResultChart'), {
+  ssr: false,
+  loading: () => <div className="h-[230px]" />,
+});
 
 export default function ResultView({ state, onReset }) {
-  const { 
-    wpm, rawWpm, accuracy, consistency, burstWpm, wordBursts, chartData, testCategory, activeLesson, 
-    modeType, timeLimit, wordLimit, completedWordsCount, 
-    charStats, elapsedSeconds, themeConfig
+  const {
+    wpm, rawWpm, accuracy, consistency, burstWpm, wordBursts, chartData,
+    testCategory, activeLesson, modeType, timeLimit, wordLimit,
+    charStats, elapsedSeconds, themeConfig,
   } = state;
 
-  const [activeTab, setActiveTab] = useState('wpm');
   const [isCopied, setIsCopied] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
+  const [isCopying, setIsCopying] = useState(false);
   const resultCardRef = useRef(null);
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
   const isLight = themeConfig.isLight;
+  const subText = isLight ? 'text-black/50' : 'text-white/40';
+  const divider = isLight ? 'border-black/10' : 'border-white/10';
+  const [correct, incorrect, extra, missed] = charStats || [0, 0, 0, 0];
 
-  // Warna-warna UI adaptif tema
-  const strokeColor = isLight ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)';
-  const gridColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.05)';
-  const subTextColor = isLight ? 'text-black/60' : 'text-white/50';
-  const labelColor = isLight ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.35)';
-  const dividerColor = isLight ? 'border-black/10' : 'border-white/10';
+  const testType = testCategory === 'curriculum'
+    ? activeLesson.title
+    : modeType === 'time'
+      ? `time ${timeLimit}s`
+      : `words ${wordLimit}`;
 
-  const safeChartData = chartData && chartData.length >= 2 
-    ? chartData 
-    : [
-        { time: 0, wpm: 0, raw: 0, errors: null },
-        { time: Math.max(1, elapsedSeconds), wpm: wpm, raw: rawWpm, errors: null }
-      ];
+  const showWpm = Math.round(wpm);
+  const showRaw = Math.round(rawWpm);
+  const showAccuracy = accuracy === 100 ? 100 : Math.round(accuracy);
+  const showConsistency = Math.round(consistency);
 
   const copyResultCardToClipboard = async () => {
-    if (!resultCardRef.current) return;
+    if (!resultCardRef.current || isCopying) return;
+    setIsCopying(true);
     try {
       const blob = await toBlob(resultCardRef.current, {
         cacheBust: true,
         pixelRatio: 2,
-        fontEmbedCSS: '', 
+        fontEmbedCSS: '',
         filter: (node) => node.tagName !== 'LINK' || node.rel !== 'stylesheet',
       });
 
       if (blob) {
-        await navigator.clipboard.write([
-          new ClipboardItem({ 'image/png': blob })
-        ]);
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
         setIsCopied(true);
         setTimeout(() => setIsCopied(false), 2500);
       }
     } catch (err) {
       console.error('Gagal menyalin gambar:', err);
       alert('Tidak dapat menyalin kartu hasil ke clipboard.');
+    } finally {
+      setIsCopying(false);
     }
   };
 
-  const [correct, incorrect, extra, missed] = charStats || [0, 0, 0, 0];
-
   return (
-    <div className="py-6 space-y-6 animate-fade-in">
-      <div 
+    <div className="py-4 sm:py-8 animate-fade-in">
+      <div
         ref={resultCardRef}
-        className={`${themeConfig.cardBg} p-8 rounded-3xl border ${themeConfig.cardBorder} space-y-6 shadow-2xl transition-colors duration-300`}
+        className={`${themeConfig.bg} px-1 sm:px-4 py-2 space-y-6`}
       >
-        <div className="flex flex-col md:flex-row items-center gap-8">
-          
-          {/* Main Displays: WPM, ACC, RAW, CONSISTENCY, BURST */}
-          <div className={`grid grid-cols-2 md:grid-cols-1 gap-5 shrink-0 border-b md:border-b-0 md:border-r ${dividerColor} pb-6 md:pb-0 md:pr-8`}>
-            <div>
-              <div className={`text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>wpm</div>
-              <div className="text-5xl md:text-6xl font-black font-mono leading-none transition-colors duration-300" style={{ color: themeConfig.primary }}>
-                {wpm}
-              </div>
-            </div>
-
-            <div>
-              <div className={`text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>acc</div>
-              <div className={`text-4xl md:text-5xl font-black font-mono leading-none ${themeConfig.textMain}`}>
-                {accuracy}%
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 md:grid-cols-1 gap-4">
-              <div>
-                <div className={`text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>raw</div>
-                <div className={`text-2xl md:text-3xl font-bold font-mono leading-none ${themeConfig.textMain}`}>
-                  {rawWpm}
-                </div>
-              </div>
-
-              <div>
-                <div className={`text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>consistency</div>
-                <div className={`text-2xl md:text-3xl font-bold font-mono leading-none ${themeConfig.textMain}`}>
-                  {consistency}%
-                </div>
-              </div>
-
-              <div>
-                <div className={`text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>
-                  burst
-                </div>
-                <div className="text-2xl md:text-3xl font-bold font-mono leading-none transition-colors duration-300" style={{ color: themeConfig.primary }}>
-                  {burstWpm}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Area Grafik Analytics */}
-          <div className="flex-1 w-full space-y-3">
-            <div className="flex items-center justify-between">
-              <div className={`flex items-center gap-2 ${isLight ? 'bg-black/5 border-black/10' : 'bg-white/5 border-white/10'} p-1 rounded-xl border text-xs font-mono`}>
-                <button
-                  onClick={() => setActiveTab('wpm')}
-                  className={`px-3 py-1 rounded-lg transition-all ${
-                    activeTab === 'wpm' 
-                      ? `${isLight ? 'bg-black/15 text-black' : 'bg-white/15 text-white'} font-bold` 
-                      : `${subTextColor} hover:opacity-100`
-                  }`}
-                >
-                  WPM & Raw
-                </button>
-                <button
-                  onClick={() => setActiveTab('burst')}
-                  className={`px-3 py-1 rounded-lg transition-all font-bold ${
-                    activeTab === 'burst' 
-                      ? 'shadow-sm' 
-                      : `${subTextColor} hover:opacity-100`
-                  }`}
-                  style={{
-                    backgroundColor: activeTab === 'burst' ? `${themeConfig.primary}33` : 'transparent',
-                    color: activeTab === 'burst' ? themeConfig.primary : undefined
-                  }}
-                >
-                  Burst per Kata
-                </button>
-              </div>
-            </div>
-
-            <div className="w-full h-[240px]">
-              {isMounted ? (
-                activeTab === 'wpm' ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart 
-                      data={safeChartData} 
-                      margin={{ top: 15, right: 0, left: -10, bottom: 0 }}
-                      className="font-mono"
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
-                      
-                      <XAxis 
-                        dataKey="time" 
-                        stroke={strokeColor} 
-                        fontSize={11} 
-                        tickLine={false} 
-                      />
-                      
-                      <YAxis 
-                        yAxisId="left"
-                        stroke={strokeColor} 
-                        fontSize={11} 
-                        tickLine={false} 
-                        domain={[0, 'auto']} 
-                      >
-                        <Label 
-                          value="Words per Minute" 
-                          angle={-90} 
-                          position="insideLeft" 
-                          offset={12}
-                          style={{ textAnchor: 'middle', fill: labelColor, fontSize: '11px', fontFamily: 'monospace' }} 
-                        />
-                      </YAxis>
-
-                      <YAxis 
-                        yAxisId="right"
-                        orientation="right"
-                        stroke={strokeColor} 
-                        fontSize={11} 
-                        tickLine={false} 
-                        domain={[0, 'auto']}
-                        allowDecimals={false}
-                      >
-                        <Label 
-                          value="Errors" 
-                          angle={90} 
-                          position="insideRight" 
-                          offset={12}
-                          style={{ textAnchor: 'middle', fill: labelColor, fontSize: '11px', fontFamily: 'monospace' }} 
-                        />
-                      </YAxis>
-
-                      <Tooltip content={<CustomTooltip primaryColor={themeConfig.primary} isLight={isLight} />} />
-                      
-                      <Line 
-                        yAxisId="left"
-                        type="monotone" 
-                        dataKey="wpm" 
-                        stroke={themeConfig.primary} 
-                        strokeWidth={3} 
-                        dot={{ fill: themeConfig.primary, r: 3, strokeWidth: 0 }} 
-                        activeDot={{ r: 5, fill: themeConfig.primary }} 
-                        isAnimationActive={false}
-                      />
-                      
-                      <Line 
-                        yAxisId="left"
-                        type="monotone" 
-                        dataKey="raw" 
-                        stroke={strokeColor} 
-                        strokeWidth={2} 
-                        strokeDasharray="4 4" 
-                        dot={false} 
-                        isAnimationActive={false}
-                      />
-
-                      <Line 
-                        yAxisId="right"
-                        type="monotone" 
-                        dataKey="errors" 
-                        stroke="transparent" 
-                        dot={<RedCrossDot />} 
-                        activeDot={false}
-                        isAnimationActive={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={wordBursts.length > 0 ? wordBursts : [{ word: '-', burst: 0 }]}
-                      margin={{ top: 15, right: 0, left: -10, bottom: 0 }}
-                      className="font-mono"
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
-                      <XAxis dataKey="word" stroke={strokeColor} fontSize={11} tickLine={false} />
-                      <YAxis stroke={strokeColor} fontSize={11} tickLine={false} domain={[0, 'auto']} />
-                      <Tooltip content={<BurstTooltip primaryColor={themeConfig.primary} isLight={isLight} />} />
-                      <Bar dataKey="burst" fill={themeConfig.primary} radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )
-              ) : (
-                <div className={`flex items-center justify-center h-full text-xs font-mono ${subTextColor}`}>
-                  Memuat Grafik...
-                </div>
-              )}
-            </div>
-          </div>
-
+        {/* Test type */}
+        <div className={`flex items-center justify-end text-[11px] font-mono ${subText}`}>
+          <span className="truncate max-w-[70%] text-right" style={{ color: themeConfig.primary }}>
+            {testType}
+          </span>
         </div>
 
-        {/* Extended Stats Bar Sesuai Monkeytype charStats */}
-        <div className={`flex flex-wrap justify-between items-center pt-4 border-t ${dividerColor} text-xs font-mono gap-4`}>
-          <div>
-            <span className={`block uppercase font-bold text-[10px] ${subTextColor}`}>test type</span>
-            <span className="font-bold" style={{ color: themeConfig.primary }}>
-              {testCategory === 'curriculum' ? activeLesson.title : `${modeType} ${modeType === 'time' ? `${timeLimit}s` : `${wordLimit} words`}`}
-            </span>
+        <div className="flex flex-col md:flex-row items-stretch gap-6 md:gap-10">
+          {/* Main stats: WPM + ACC */}
+          <div className="flex md:flex-col items-end md:items-start justify-between md:justify-start gap-4 md:gap-5 shrink-0 md:w-[190px]">
+            <div>
+              <div className={`text-lg font-mono leading-none ${subText}`}>wpm</div>
+              <div
+                className="text-[3.6rem] sm:text-[4.5rem] font-mono leading-[0.95] transition-colors duration-300"
+                style={{ color: themeConfig.primary }}
+              >
+                {showWpm}
+              </div>
+            </div>
+
+            <div>
+              <div className={`text-lg font-mono leading-none ${subText}`}>acc</div>
+              <div className={`text-[2.75rem] sm:text-[3.4rem] font-mono leading-[0.95] ${themeConfig.textMain}`}>
+                {showAccuracy}%
+              </div>
+            </div>
           </div>
-          <div>
-            <span className={`block uppercase font-bold text-[10px] ${subTextColor}`}>characters (correct/incorrect/extra/missed)</span>
-            <span className="font-bold">
-              <span style={{ color: themeConfig.primary }}>{correct}</span> / <span className="text-rose-500">{incorrect}</span> / <span className="text-rose-600">{extra}</span> / <span className="text-amber-600">{missed}</span>
-            </span>
+
+          {/* Chart */}
+          <div className="flex-1 min-w-0 min-h-[230px]">
+            <ResultChart
+              chartData={chartData}
+              wordBursts={wordBursts}
+              themeConfig={themeConfig}
+            />
           </div>
+        </div>
+
+        {/* Secondary stats */}
+        <div className={`flex flex-wrap items-start gap-x-8 gap-y-4 pt-4 border-t ${divider} font-mono`}>
           <div>
-            <span className={`block uppercase font-bold text-[10px] ${subTextColor}`}>completed words</span>
-            <span className={`font-bold ${themeConfig.textMain}`}>{completedWordsCount} Kata</span>
+            <div className={`text-[11px] ${subText}`}>raw</div>
+            <div className={`text-xl leading-tight ${themeConfig.textMain}`}>{showRaw}</div>
           </div>
+
           <div>
-            <span className={`block uppercase font-bold text-[10px] ${subTextColor}`}>time</span>
-            <span className={`font-bold ${themeConfig.textMain}`}>{elapsedSeconds}s</span>
+            <div className={`text-[11px] ${subText}`}>characters</div>
+            <div className="text-xl leading-tight">
+              <span style={{ color: themeConfig.primary }}>{correct}</span>
+              <span className={isLight ? 'text-black/35' : 'text-white/30'}>/</span>
+              <span className="text-[#ca4754]">{incorrect}</span>
+              <span className={isLight ? 'text-black/35' : 'text-white/30'}>/</span>
+              <span className="text-[#ca4754]/70">{extra}</span>
+              <span className={isLight ? 'text-black/35' : 'text-white/30'}>/</span>
+              <span className="text-[#7e2a33] dark:text-[#ca4754]/60">{missed}</span>
+            </div>
+          </div>
+
+          <div>
+            <div className={`text-[11px] ${subText}`}>consistency</div>
+            <div className={`text-xl leading-tight ${themeConfig.textMain}`}>{showConsistency}%</div>
+          </div>
+
+          <div>
+            <div className={`text-[11px] ${subText}`}>time</div>
+            <div className={`text-xl leading-tight ${themeConfig.textMain}`}>{elapsedSeconds}s</div>
+          </div>
+
+          <div>
+            <div className={`text-[11px] ${subText}`}>burst</div>
+            <div className="text-xl leading-tight" style={{ color: themeConfig.primary }}>{burstWpm}</div>
           </div>
         </div>
       </div>
 
-      <div className="flex justify-center items-center gap-4 pt-2">
+      {/* Actions */}
+      <div className="flex justify-center items-center gap-3 pt-6">
         <button
           onClick={onReset}
-          className="flex items-center gap-2 px-6 py-3 text-black font-bold rounded-xl transition shadow-lg hover:brightness-110 active:scale-95"
+          className="flex items-center gap-2 px-6 py-3 text-black font-bold rounded-xl transition shadow-lg hover:brightness-110 active:scale-95 font-mono"
           style={{ backgroundColor: themeConfig.primary }}
         >
-          <RotateCcw className="w-5 h-5" /> Latihan Lagi
+          <RotateCcw className="w-4 h-4" /> Latihan Lagi
         </button>
 
         <button
           onClick={copyResultCardToClipboard}
-          className={`flex items-center gap-2 px-5 py-3 ${isLight ? 'bg-black/10 hover:bg-black/15 text-black border-black/10' : 'bg-white/10 hover:bg-white/20 text-white border-white/10'} font-semibold rounded-xl border transition`}
-          title="Copy Kartu Gambar ke Clipboard"
+          disabled={isCopying}
+          className={`flex items-center gap-2 px-5 py-3 ${
+            isLight
+              ? 'bg-black/5 hover:bg-black/10 text-black border-black/10'
+              : 'bg-white/5 hover:bg-white/10 text-white border-white/10'
+          } font-semibold rounded-xl border transition disabled:opacity-50 font-mono`}
+          title="Copy kartu hasil ke clipboard"
         >
           {isCopied ? (
             <>
-              <Check className="w-5 h-5 text-emerald-500" />
-              <span className="text-emerald-500">Tersalin ke Clipboard!</span>
+              <Check className="w-4 h-4 text-emerald-500" />
+              <span className="text-emerald-500">Tersalin!</span>
             </>
           ) : (
             <>
-              <ImageIcon className="w-5 h-5" style={{ color: themeConfig.primary }} />
-              <span>Copy Gambar Hasil</span>
+              <ImageIcon className="w-4 h-4" style={{ color: themeConfig.primary }} />
+              <span>Copy Gambar</span>
             </>
           )}
         </button>

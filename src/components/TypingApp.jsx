@@ -48,6 +48,7 @@ export default function TypingApp() {
 
   useEffect(() => {
     if (!state.isStarted) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLineScrollOffset(0);
     }
   }, [state.isStarted]);
@@ -57,7 +58,7 @@ export default function TypingApp() {
       <div className="max-w-5xl mx-auto space-y-8">
         
         <HeaderNav state={state} inputRef={containerRef} />
-        <ConfigBar state={state} inputRef={containerRef} />
+        {!state.isFinished && <ConfigBar state={state} inputRef={containerRef} />}
 
         {!state.isFinished ? (
           <div className="flex items-center justify-between gap-8 py-8 min-h-[300px]">
@@ -72,7 +73,7 @@ export default function TypingApp() {
               tabIndex={0}
               onKeyDown={actions.handleKeyDown}
               onClick={() => containerRef.current && containerRef.current.focus()}
-              className={`relative flex-1 cursor-text font-mono text-2xl md:text-3xl leading-none tracking-wider select-none h-[150px] overflow-hidden rounded-2xl px-6 py-0 border shadow-inner transition-colors duration-300 outline-none ${themeConfig.cardBg} ${themeConfig.cardBorder}`}
+              className="relative flex-1 cursor-text font-mono text-2xl md:text-[1.75rem] leading-none tracking-wide select-none h-[150px] overflow-hidden px-1 py-0 outline-none"
             >
               <div
                 ref={wordsContainerRef}
@@ -117,27 +118,30 @@ export default function TypingApp() {
                       className="inline-flex relative h-[50px] items-center my-0"
                     >
                       {charList.map((item, cIdx) => {
-                        let charStyle = isLight ? 'opacity-35' : 'opacity-25';
+                        // Monkeytype palette: correct letters inherit the main
+                        // text colour, only mistakes are coloured.
+                        let charClass = isLight ? 'text-current opacity-35' : 'text-current opacity-25';
+                        let charStyle = undefined;
 
                         if (item.status === 'correct') {
-                          charStyle = 'opacity-100 font-medium text-emerald-400';
+                          charClass = 'opacity-100';
                         } else if (item.status === 'incorrect') {
-                          charStyle = 'text-rose-500 bg-rose-500/10 rounded px-0.5';
+                          charClass = 'opacity-100';
+                          charStyle = { color: themeConfig.error };
                         } else if (item.status === 'extra') {
-                          charStyle = 'text-rose-700 bg-rose-950/40 rounded px-0.5 font-bold';
+                          charClass = 'opacity-80';
+                          charStyle = { color: themeConfig.altError };
                         } else if (item.status === 'missed') {
-                          charStyle = 'text-amber-500/60 underline decoration-rose-500 decoration-2';
+                          charClass = 'opacity-70 underline decoration-2 underline-offset-4';
+                          charStyle = { color: themeConfig.error, textDecorationColor: themeConfig.error };
                         }
 
                         return (
-                          <span key={cIdx} className={`relative ${charStyle}`}>
+                          <span key={cIdx} className={`relative ${charClass}`} style={charStyle}>
                             {item.isCaret && (
-                              <span 
-                                className="absolute -left-0.5 top-2 bottom-2 w-[3px] animate-pulse rounded-full" 
-                                style={{
-                                  backgroundColor: themeConfig.primary,
-                                  boxShadow: `0 0 8px ${themeConfig.primary}`
-                                }}
+                              <span
+                                className="absolute -left-[2px] top-1 bottom-1 w-[2px] animate-caret rounded-full"
+                                style={{ backgroundColor: themeConfig.primary }}
                               />
                             )}
                             {item.char}
@@ -148,12 +152,9 @@ export default function TypingApp() {
                       {/* Caret di akhir kata jika caret berada setelah huruf terakhir */}
                       {isCurrentWord && typedWord.length >= targetWord.length && (
                         <span className="relative">
-                          <span 
-                            className="absolute -left-0.5 top-2 bottom-2 w-[3px] animate-pulse rounded-full" 
-                            style={{
-                              backgroundColor: themeConfig.primary,
-                              boxShadow: `0 0 8px ${themeConfig.primary}`
-                            }}
+                          <span
+                            className="absolute -left-[2px] top-1 bottom-1 w-[2px] animate-caret rounded-full"
+                            style={{ backgroundColor: themeConfig.primary }}
                           />
                         </span>
                       )}
@@ -191,11 +192,13 @@ export default function TypingApp() {
           </div>
         )}
 
-        <VisualKeyboard 
-          getNextChar={actions.getNextChar} 
-          charErrors={state.charErrors} 
-          themeConfig={state.themeConfig} 
-        />
+        {!state.isFinished && (
+          <VisualKeyboard
+            getNextChar={actions.getNextChar}
+            charErrors={state.charErrors}
+            themeConfig={state.themeConfig}
+          />
+        )}
 
       </div>
     </div>

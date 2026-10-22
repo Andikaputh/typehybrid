@@ -30,3 +30,12 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(226, 183, 20, 0.4);
 }
+
+/* Caret bergaya Monkeytype */
+@keyframes caret-blink {
+  0%, 45% { opacity: 1; }
+  55%, 100% { opacity: 0; }
+}
+.animate-caret {
+  animation: caret-blink 1s step-end infinite;
+}
