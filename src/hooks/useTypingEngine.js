@@ -58,13 +58,13 @@ export const THEME_CONFIGS = {
     bg: 'bg-[#e1e1e1]',
     cardBg: 'bg-[#d1d0c5]',
     cardBorder: 'border-black/10',
-    primary: '#b8860b',
-    textPrimary: 'text-[#946c00]',
-    bgPrimary: 'bg-[#b8860b]',
-    textMain: 'text-[#282a2e]',
-    subText: 'text-[#555a64]',
+    primary: '#e2b714',
+    textPrimary: 'text-[#b89100]',
+    bgPrimary: 'bg-[#e2b714]',
+    textMain: 'text-[#323437]',
+    subText: 'text-[#646669]',
     keyBg: 'bg-black/5',
-    keyText: 'text-[#282a2e]',
+    keyText: 'text-[#323437]',
   },
   cyber: {
     id: 'cyber',
@@ -397,155 +397,7 @@ export function useTypingEngine() {
     };
   }, [isStarted, isFinished, testCategory, modeType, timeLimit, evaluateMetrics]);
 
-  // Handler Karakter & Kata (Dipakai bersama oleh Desktop Keyboard & Mobile Virtual Keyboard)
-  const handleStartTest = (now) => {
-    setIsStarted(true);
-    startTimeRef.current = now;
-    wordStartTimeRef.current = now;
-    lastRecordedSecRef.current = 0;
-    prevTotalRawCharsRef.current = 0;
-    setChartData([{ time: 0, wpm: 0, raw: 0, errors: null }]);
-  };
-
-  const handleBackspace = () => {
-    if (isFinished) return;
-    const currentWord = words[currentWordIdx] || '';
-    const currentTyped = typedWords[currentWordIdx] || '';
-
-    if (currentTyped.length > 0) {
-      const updated = [...typedWords];
-      updated[currentWordIdx] = currentTyped.slice(0, -1);
-      setTypedWords(updated);
-      playClickSound(false, soundEnabled, soundProfile);
-    } else if (currentWordIdx > 0) {
-      const prevWord = words[currentWordIdx - 1];
-      const prevTyped = typedWords[currentWordIdx - 1];
-      if (prevTyped !== prevWord) {
-        setCurrentWordIdx(currentWordIdx - 1);
-        setTypedWords(typedWords.slice(0, -1));
-        playClickSound(false, soundEnabled, soundProfile);
-      }
-    }
-  };
-
-  const handleSpace = () => {
-    if (isFinished) return;
-    const currentTyped = typedWords[currentWordIdx] || '';
-    if (currentTyped.length === 0) return;
-
-    const now = Date.now();
-    recordWordBurst(currentTyped, wordStartTimeRef.current, now);
-    wordStartTimeRef.current = now;
-
-    if (words.length - currentWordIdx < 30) {
-      if (testCategory === 'free' && modeType === 'time') {
-        setWords(prev => [...prev, ...generateWords(60)]);
-      } else if (testCategory === 'curriculum') {
-        setWords(prev => [...prev, ...generateCurriculumText(activeSubLesson.text, activeLesson.newKeys, 60)]);
-      }
-    }
-
-    setCurrentWordIdx(prev => prev + 1);
-    setTypedWords(prev => [...prev, '']);
-    playClickSound(false, soundEnabled, soundProfile);
-  };
-
-  const handleChar = (char) => {
-    if (isFinished) return;
-    if (char === ' ') {
-      handleSpace();
-      return;
-    }
-    if (char.length !== 1) return;
-
-    const now = Date.now();
-    if (!isStarted) {
-      handleStartTest(now);
-    }
-
-    const currentWord = words[currentWordIdx] || '';
-    const currentTyped = typedWords[currentWordIdx] || '';
-
-    if (currentTyped.length >= currentWord.length + 10) return;
-
-    if (!wordStartTimeRef.current) {
-      wordStartTimeRef.current = now;
-    }
-
-    const nextTyped = currentTyped + char;
-    const targetChar = currentWord[currentTyped.length];
-    const isCorrect = char === targetChar;
-
-    const updated = [...typedWords];
-    updated[currentWordIdx] = nextTyped;
-    setTypedWords(updated);
-
-    if (!isCorrect) {
-      const curSec = Math.max(1, elapsedSeconds);
-      setErrorsPerSecond(prev => ({ ...prev, [curSec]: (prev[curSec] || 0) + 1 }));
-      setCharErrors(prev => ({
-        ...prev,
-        [targetChar?.toLowerCase() || 'space']: (prev[targetChar?.toLowerCase() || 'space'] || 0) + 1
-      }));
-    }
-
-    playClickSound(!isCorrect, soundEnabled, soundProfile);
-
-    if (testCategory === 'free' && modeType === 'words') {
-      const isLastWord = currentWordIdx + 1 >= wordLimit;
-      const isWordFullyTyped = nextTyped.length >= currentWord.length;
-
-      if (isLastWord && isWordFullyTyped) {
-        recordWordBurst(nextTyped, wordStartTimeRef.current, now);
-        setIsFinished(true);
-        setIsStarted(false);
-        if (timerRef.current) clearInterval(timerRef.current);
-      }
-    }
-  };
-
-  // Sinkronisasi teks dari input mobile secara presisi
-  // Membandingkan value baru dari <input> dengan state saat ini melalui ref
-  const handleSyncInput = (newVal) => {
-    if (isFinished) return;
-    
-    // Baca state terbaru dari ref untuk akurasi
-    const currentTyped = typedWordsRef.current[currentWordIdx] || '';
-
-    // Deteksi jika user menekan spasi (virtual keyboard HP)
-    if (newVal.endsWith(' ') || newVal.includes(' ')) {
-      // Tambahkan dulu karakter baru sebelum spasi jika ada
-      const beforeSpace = newVal.split(' ')[0] || '';
-      if (beforeSpace.length > currentTyped.length) {
-        const added = beforeSpace.slice(currentTyped.length);
-        for (let i = 0; i < added.length; i++) {
-          handleChar(added[i]);
-        }
-      }
-      handleSpace();
-      return;
-    }
-
-    // Karakter bertambah (user mengetik karakter baru)
-    if (newVal.length > currentTyped.length) {
-      const added = newVal.slice(currentTyped.length);
-      for (let i = 0; i < added.length; i++) {
-        handleChar(added[i]);
-      }
-      return;
-    }
-
-    // Karakter berkurang (Backspace / hapus)
-    if (newVal.length < currentTyped.length) {
-      const diff = currentTyped.length - newVal.length;
-      for (let i = 0; i < diff; i++) {
-        handleBackspace();
-      }
-      return;
-    }
-  };
-
-  // Handler Tombol Keyboard Native Desktop
+  // Handler Tombol Keyboard
   const handleKeyDown = (e) => {
     if (e.key === 'Tab') {
       e.preventDefault();
@@ -555,21 +407,96 @@ export function useTypingEngine() {
 
     if (isFinished) return;
 
+    const now = Date.now();
+
+    if (!isStarted && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      setIsStarted(true);
+      startTimeRef.current = now;
+      wordStartTimeRef.current = now;
+      lastRecordedSecRef.current = 0;
+      prevTotalRawCharsRef.current = 0;
+      setChartData([{ time: 0, wpm: 0, raw: 0, errors: null }]);
+    }
+
+    const currentWord = words[currentWordIdx] || '';
+    const currentTyped = typedWords[currentWordIdx] || '';
+
     if (e.key === 'Backspace') {
-      e.preventDefault();
-      handleBackspace();
+      if (currentTyped.length > 0) {
+        const updated = [...typedWords];
+        updated[currentWordIdx] = currentTyped.slice(0, -1);
+        setTypedWords(updated);
+        playClickSound(false, soundEnabled, soundProfile);
+      } else if (currentWordIdx > 0) {
+        const prevWord = words[currentWordIdx - 1];
+        const prevTyped = typedWords[currentWordIdx - 1];
+        if (prevTyped !== prevWord) {
+          setCurrentWordIdx(currentWordIdx - 1);
+          setTypedWords(typedWords.slice(0, -1));
+          playClickSound(false, soundEnabled, soundProfile);
+        }
+      }
       return;
     }
 
     if (e.key === ' ') {
       e.preventDefault();
-      handleSpace();
+      if (currentTyped.length === 0) return;
+
+      recordWordBurst(currentTyped, wordStartTimeRef.current, now);
+      wordStartTimeRef.current = now;
+
+      if (words.length - currentWordIdx < 30) {
+        if (testCategory === 'free' && modeType === 'time') {
+          setWords(prev => [...prev, ...generateWords(60)]);
+        } else if (testCategory === 'curriculum') {
+          setWords(prev => [...prev, ...generateCurriculumText(activeSubLesson.text, activeLesson.newKeys, 60)]);
+        }
+      }
+
+      setCurrentWordIdx(prev => prev + 1);
+      setTypedWords(prev => [...prev, '']);
+      playClickSound(false, soundEnabled, soundProfile);
       return;
     }
 
     if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      e.preventDefault();
-      handleChar(e.key);
+      if (currentTyped.length >= currentWord.length + 10) return;
+
+      if (!wordStartTimeRef.current) {
+        wordStartTimeRef.current = now;
+      }
+
+      const nextTyped = currentTyped + e.key;
+      const targetChar = currentWord[currentTyped.length];
+      const isCorrect = e.key === targetChar;
+
+      const updated = [...typedWords];
+      updated[currentWordIdx] = nextTyped;
+      setTypedWords(updated);
+
+      if (!isCorrect) {
+        const curSec = Math.max(1, elapsedSeconds);
+        setErrorsPerSecond(prev => ({ ...prev, [curSec]: (prev[curSec] || 0) + 1 }));
+        setCharErrors(prev => ({
+          ...prev,
+          [targetChar?.toLowerCase() || 'space']: (prev[targetChar?.toLowerCase() || 'space'] || 0) + 1
+        }));
+      }
+
+      playClickSound(!isCorrect, soundEnabled, soundProfile);
+
+      if (testCategory === 'free' && modeType === 'words') {
+        const isLastWord = currentWordIdx + 1 >= wordLimit;
+        const isWordFullyTyped = nextTyped.length >= currentWord.length;
+
+        if (isLastWord && isWordFullyTyped) {
+          recordWordBurst(nextTyped, wordStartTimeRef.current, now);
+          setIsFinished(true);
+          setIsStarted(false);
+          if (timerRef.current) clearInterval(timerRef.current);
+        }
+      }
     }
   };
 
@@ -591,15 +518,6 @@ export function useTypingEngine() {
       wpm, rawWpm, accuracy, consistency, burstWpm, wordBursts, elapsedSeconds, completedWordsCount, charStats,
       chartData, charErrors, activeLesson, activeSubLesson
     },
-    actions: { 
-      handleKeyDown, 
-      handleBackspace, 
-      handleSpace, 
-      handleChar, 
-      handleSyncInput, 
-      resetTest, 
-      getNextChar, 
-      activeFinger 
-    }
+    actions: { handleKeyDown, resetTest, getNextChar, activeFinger }
   };
 }

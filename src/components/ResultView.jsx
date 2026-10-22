@@ -9,12 +9,12 @@ const CustomTooltip = ({ active, payload, label, primaryColor, isLight }) => {
   if (active && payload && payload.length) {
     const errorData = payload.find(p => p.dataKey === 'errors');
     return (
-      <div className={`${isLight ? 'bg-[#d1d0c5] border-black/20 text-[#282a2e]' : 'bg-[#18191a] border-white/15 text-white'} p-2.5 rounded-lg font-mono text-xs shadow-2xl space-y-1`}>
-        <div className={`${isLight ? 'text-black/60 border-black/15' : 'text-white/40 border-white/10'} border-b pb-1 mb-1 font-bold`}>Detik ke-{label}s</div>
+      <div className={`${isLight ? 'bg-[#d1d0c5] border-black/20 text-[#323437]' : 'bg-[#18191a] border-white/15 text-white'} p-2.5 rounded-lg font-mono text-xs shadow-2xl space-y-1`}>
+        <div className={`${isLight ? 'text-black/50 border-black/10' : 'text-white/40 border-white/10'} border-b pb-1 mb-1 font-bold`}>Detik ke-{label}s</div>
         <div className="font-bold" style={{ color: primaryColor }}>WPM: {payload[0]?.value}</div>
-        <div className="opacity-75 font-medium" style={{ color: primaryColor }}>Raw: {payload[1]?.value}</div>
+        <div className="opacity-70" style={{ color: primaryColor }}>Raw: {payload[1]?.value}</div>
         {errorData && errorData.value !== null && errorData.value !== undefined && (
-          <div className="text-rose-600 font-bold flex items-center gap-1 mt-1">
+          <div className="text-rose-500 font-bold flex items-center gap-1 mt-1">
             <span>✖ {errorData.value} Kesalahan pada detik ini</span>
           </div>
         )}
@@ -28,8 +28,8 @@ const BurstTooltip = ({ active, payload, primaryColor, isLight }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className={`${isLight ? 'bg-[#d1d0c5] border-black/20 text-[#282a2e]' : 'bg-[#18191a] border-white/15 text-white'} p-2.5 rounded-lg font-mono text-xs shadow-2xl space-y-1`}>
-        <div className={`${isLight ? 'text-black/60 border-black/15' : 'text-white/40 border-white/10'} border-b pb-1 font-bold`}>Kata: "{data.word}"</div>
+      <div className={`${isLight ? 'bg-[#d1d0c5] border-black/20 text-[#323437]' : 'bg-[#18191a] border-white/15 text-white'} p-2.5 rounded-lg font-mono text-xs shadow-2xl space-y-1`}>
+        <div className={`${isLight ? 'text-black/50 border-black/10' : 'text-white/40 border-white/10'} border-b pb-1 font-bold`}>Kata: "{data.word}"</div>
         <div className="font-bold" style={{ color: primaryColor }}>Burst Speed: {data.burst} WPM</div>
       </div>
     );
@@ -42,7 +42,7 @@ const RedCrossDot = (props) => {
   if (!cx || !cy || payload?.errors === null || payload?.errors === undefined) return null;
   return (
     <g transform={`translate(${cx - 5},${cy - 5})`}>
-      <path d="M 0 0 L 10 10 M 10 0 L 0 10" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M 0 0 L 10 10 M 10 0 L 0 10" stroke="#ca4754" strokeWidth="2.5" strokeLinecap="round" />
     </g>
   );
 };
@@ -65,12 +65,12 @@ export default function ResultView({ state, onReset }) {
 
   const isLight = themeConfig.isLight;
 
-  // Warna-warna UI adaptif tema dengan kontras tinggi
-  const strokeColor = isLight ? '#4b5563' : 'rgba(255,255,255,0.4)';
-  const gridColor = isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.06)';
-  const subTextColor = isLight ? 'text-[#282a2e]/75 font-semibold' : 'text-white/60';
-  const labelColor = isLight ? '#1f2937' : 'rgba(255,255,255,0.6)';
-  const dividerColor = isLight ? 'border-black/15' : 'border-white/10';
+  // Warna-warna UI adaptif tema
+  const strokeColor = isLight ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)';
+  const gridColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.05)';
+  const subTextColor = isLight ? 'text-black/60' : 'text-white/50';
+  const labelColor = isLight ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.35)';
+  const dividerColor = isLight ? 'border-black/10' : 'border-white/10';
 
   const safeChartData = chartData && chartData.length >= 2 
     ? chartData 
@@ -105,62 +105,51 @@ export default function ResultView({ state, onReset }) {
   const [correct, incorrect, extra, missed] = charStats || [0, 0, 0, 0];
 
   return (
-    <div className="py-2 sm:py-6 space-y-4 sm:space-y-6 animate-fade-in">
+    <div className="py-6 space-y-6 animate-fade-in">
       <div 
         ref={resultCardRef}
-        className={`${themeConfig.cardBg} p-4 sm:p-8 rounded-3xl border ${themeConfig.cardBorder} space-y-5 sm:space-y-6 shadow-2xl transition-colors duration-300`}
+        className={`${themeConfig.cardBg} p-8 rounded-3xl border ${themeConfig.cardBorder} space-y-6 shadow-2xl transition-colors duration-300`}
       >
-        {/* Header Hasil untuk Mobile & Desktop */}
-        <div className={`flex items-center justify-between pb-3 border-b ${dividerColor} text-xs font-mono`}>
-          <span className={`uppercase font-bold tracking-wider text-[10px] sm:text-xs ${subTextColor}`}>
-            Hasil Latihan Pengetikan
-          </span>
-          <span className="font-bold truncate max-w-[200px] sm:max-w-none text-right" style={{ color: themeConfig.primary }}>
-            {testCategory === 'curriculum' ? activeLesson.title : `${modeType} ${modeType === 'time' ? `${timeLimit}s` : `${wordLimit} kata`}`}
-          </span>
-        </div>
-
-        <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8">
+        <div className="flex flex-col md:flex-row items-center gap-8">
           
-          {/* Main Display Grid: WPM, ACC, RAW, CONSISTENCY, BURST (2 Kolom Rapi di Layar HP) */}
-          <div className={`grid grid-cols-2 md:grid-cols-1 gap-3 sm:gap-5 shrink-0 border-b md:border-b-0 md:border-r ${dividerColor} pb-5 md:pb-0 md:pr-8 w-full md:w-auto`}>
-            {/* WPM */}
-            <div className="p-3 sm:p-0 rounded-2xl bg-black/5 dark:bg-white/5 md:bg-transparent">
-              <div className={`text-[10px] sm:text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>wpm</div>
-              <div className="text-4xl sm:text-5xl md:text-6xl font-black font-mono leading-none transition-colors duration-300" style={{ color: themeConfig.primary }}>
+          {/* Main Displays: WPM, ACC, RAW, CONSISTENCY, BURST */}
+          <div className={`grid grid-cols-2 md:grid-cols-1 gap-5 shrink-0 border-b md:border-b-0 md:border-r ${dividerColor} pb-6 md:pb-0 md:pr-8`}>
+            <div>
+              <div className={`text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>wpm</div>
+              <div className="text-5xl md:text-6xl font-black font-mono leading-none transition-colors duration-300" style={{ color: themeConfig.primary }}>
                 {wpm}
               </div>
             </div>
 
-            {/* ACC */}
-            <div className="p-3 sm:p-0 rounded-2xl bg-black/5 dark:bg-white/5 md:bg-transparent">
-              <div className={`text-[10px] sm:text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>acc</div>
-              <div className={`text-4xl sm:text-5xl md:text-6xl font-black font-mono leading-none ${themeConfig.textMain}`}>
+            <div>
+              <div className={`text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>acc</div>
+              <div className={`text-4xl md:text-5xl font-black font-mono leading-none ${themeConfig.textMain}`}>
                 {accuracy}%
               </div>
             </div>
 
-            {/* RAW */}
-            <div className="p-2.5 sm:p-0 rounded-2xl bg-black/5 dark:bg-white/5 md:bg-transparent">
-              <div className={`text-[10px] sm:text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>raw</div>
-              <div className={`text-2xl sm:text-3xl font-bold font-mono leading-none ${themeConfig.textMain}`}>
-                {rawWpm}
+            <div className="grid grid-cols-3 md:grid-cols-1 gap-4">
+              <div>
+                <div className={`text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>raw</div>
+                <div className={`text-2xl md:text-3xl font-bold font-mono leading-none ${themeConfig.textMain}`}>
+                  {rawWpm}
+                </div>
               </div>
-            </div>
 
-            {/* CONSISTENCY */}
-            <div className="p-2.5 sm:p-0 rounded-2xl bg-black/5 dark:bg-white/5 md:bg-transparent">
-              <div className={`text-[10px] sm:text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>consistency</div>
-              <div className={`text-2xl sm:text-3xl font-bold font-mono leading-none ${themeConfig.textMain}`}>
-                {consistency}%
+              <div>
+                <div className={`text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>consistency</div>
+                <div className={`text-2xl md:text-3xl font-bold font-mono leading-none ${themeConfig.textMain}`}>
+                  {consistency}%
+                </div>
               </div>
-            </div>
 
-            {/* BURST (Full-width 2-kolom di HP) */}
-            <div className="col-span-2 md:col-span-1 p-2.5 sm:p-0 rounded-2xl bg-black/5 dark:bg-white/5 md:bg-transparent flex justify-between md:block items-center">
-              <div className={`text-[10px] sm:text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>burst</div>
-              <div className="text-2xl sm:text-3xl font-bold font-mono leading-none transition-colors duration-300" style={{ color: themeConfig.primary }}>
-                {burstWpm} <span className="text-xs font-normal opacity-70">WPM</span>
+              <div>
+                <div className={`text-xs uppercase tracking-widest font-mono font-bold ${subTextColor}`}>
+                  burst
+                </div>
+                <div className="text-2xl md:text-3xl font-bold font-mono leading-none transition-colors duration-300" style={{ color: themeConfig.primary }}>
+                  {burstWpm}
+                </div>
               </div>
             </div>
           </div>
@@ -168,11 +157,10 @@ export default function ResultView({ state, onReset }) {
           {/* Area Grafik Analytics */}
           <div className="flex-1 w-full space-y-3">
             <div className="flex items-center justify-between">
-              {/* Tab Selector: Full-Width di Mobile */}
-              <div className={`w-full sm:w-auto grid grid-cols-2 sm:flex items-center gap-1 sm:gap-2 ${isLight ? 'bg-black/5 border-black/10' : 'bg-white/5 border-white/10'} p-1 rounded-xl border text-[11px] sm:text-xs font-mono`}>
+              <div className={`flex items-center gap-2 ${isLight ? 'bg-black/5 border-black/10' : 'bg-white/5 border-white/10'} p-1 rounded-xl border text-xs font-mono`}>
                 <button
                   onClick={() => setActiveTab('wpm')}
-                  className={`w-full sm:w-auto px-3 py-1.5 rounded-lg transition-all text-center ${
+                  className={`px-3 py-1 rounded-lg transition-all ${
                     activeTab === 'wpm' 
                       ? `${isLight ? 'bg-black/15 text-black' : 'bg-white/15 text-white'} font-bold` 
                       : `${subTextColor} hover:opacity-100`
@@ -182,7 +170,7 @@ export default function ResultView({ state, onReset }) {
                 </button>
                 <button
                   onClick={() => setActiveTab('burst')}
-                  className={`w-full sm:w-auto px-3 py-1.5 rounded-lg transition-all font-bold text-center ${
+                  className={`px-3 py-1 rounded-lg transition-all font-bold ${
                     activeTab === 'burst' 
                       ? 'shadow-sm' 
                       : `${subTextColor} hover:opacity-100`
@@ -197,13 +185,13 @@ export default function ResultView({ state, onReset }) {
               </div>
             </div>
 
-            <div className="w-full h-[200px] sm:h-[240px]">
+            <div className="w-full h-[240px]">
               {isMounted ? (
                 activeTab === 'wpm' ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart 
                       data={safeChartData} 
-                      margin={{ top: 15, right: 5, left: -18, bottom: 0 }}
+                      margin={{ top: 15, right: 0, left: -10, bottom: 0 }}
                       className="font-mono"
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
@@ -211,23 +199,23 @@ export default function ResultView({ state, onReset }) {
                       <XAxis 
                         dataKey="time" 
                         stroke={strokeColor} 
-                        fontSize={10} 
+                        fontSize={11} 
                         tickLine={false} 
                       />
                       
                       <YAxis 
                         yAxisId="left"
                         stroke={strokeColor} 
-                        fontSize={10} 
+                        fontSize={11} 
                         tickLine={false} 
                         domain={[0, 'auto']} 
                       >
                         <Label 
-                          value="WPM" 
+                          value="Words per Minute" 
                           angle={-90} 
                           position="insideLeft" 
                           offset={12}
-                          style={{ textAnchor: 'middle', fill: labelColor, fontSize: '10px', fontFamily: 'monospace' }} 
+                          style={{ textAnchor: 'middle', fill: labelColor, fontSize: '11px', fontFamily: 'monospace' }} 
                         />
                       </YAxis>
 
@@ -235,17 +223,17 @@ export default function ResultView({ state, onReset }) {
                         yAxisId="right"
                         orientation="right"
                         stroke={strokeColor} 
-                        fontSize={10} 
+                        fontSize={11} 
                         tickLine={false} 
                         domain={[0, 'auto']}
                         allowDecimals={false}
                       >
                         <Label 
-                          value="Err" 
+                          value="Errors" 
                           angle={90} 
                           position="insideRight" 
                           offset={12}
-                          style={{ textAnchor: 'middle', fill: labelColor, fontSize: '10px', fontFamily: 'monospace' }} 
+                          style={{ textAnchor: 'middle', fill: labelColor, fontSize: '11px', fontFamily: 'monospace' }} 
                         />
                       </YAxis>
 
@@ -288,12 +276,12 @@ export default function ResultView({ state, onReset }) {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={wordBursts.length > 0 ? wordBursts : [{ word: '-', burst: 0 }]}
-                      margin={{ top: 15, right: 5, left: -18, bottom: 0 }}
+                      margin={{ top: 15, right: 0, left: -10, bottom: 0 }}
                       className="font-mono"
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
-                      <XAxis dataKey="word" stroke={strokeColor} fontSize={10} tickLine={false} />
-                      <YAxis stroke={strokeColor} fontSize={10} tickLine={false} domain={[0, 'auto']} />
+                      <XAxis dataKey="word" stroke={strokeColor} fontSize={11} tickLine={false} />
+                      <YAxis stroke={strokeColor} fontSize={11} tickLine={false} domain={[0, 'auto']} />
                       <Tooltip content={<BurstTooltip primaryColor={themeConfig.primary} isLight={isLight} />} />
                       <Bar dataKey="burst" fill={themeConfig.primary} radius={[4, 4, 0, 0]} />
                     </BarChart>
@@ -309,30 +297,35 @@ export default function ResultView({ state, onReset }) {
 
         </div>
 
-        {/* Extended Stats Bar */}
-        <div className={`grid grid-cols-2 sm:flex sm:flex-wrap justify-between items-center pt-3 sm:pt-4 border-t ${dividerColor} text-xs font-mono gap-3 sm:gap-4`}>
+        {/* Extended Stats Bar Sesuai Monkeytype charStats */}
+        <div className={`flex flex-wrap justify-between items-center pt-4 border-t ${dividerColor} text-xs font-mono gap-4`}>
           <div>
-            <span className={`block uppercase font-bold text-[9px] sm:text-[10px] ${subTextColor}`}>characters (c/i/e/m)</span>
-            <span className="font-bold">
-              <span style={{ color: themeConfig.primary }}>{correct}</span> / <span className="text-rose-600 font-bold">{incorrect}</span> / <span className="text-rose-700 font-bold">{extra}</span> / <span className={isLight ? "text-amber-800 font-bold" : "text-amber-500 font-bold"}>{missed}</span>
+            <span className={`block uppercase font-bold text-[10px] ${subTextColor}`}>test type</span>
+            <span className="font-bold" style={{ color: themeConfig.primary }}>
+              {testCategory === 'curriculum' ? activeLesson.title : `${modeType} ${modeType === 'time' ? `${timeLimit}s` : `${wordLimit} words`}`}
             </span>
           </div>
           <div>
-            <span className={`block uppercase font-bold text-[9px] sm:text-[10px] ${subTextColor}`}>completed words</span>
+            <span className={`block uppercase font-bold text-[10px] ${subTextColor}`}>characters (correct/incorrect/extra/missed)</span>
+            <span className="font-bold">
+              <span style={{ color: themeConfig.primary }}>{correct}</span> / <span className="text-rose-500">{incorrect}</span> / <span className="text-rose-600">{extra}</span> / <span className="text-amber-600">{missed}</span>
+            </span>
+          </div>
+          <div>
+            <span className={`block uppercase font-bold text-[10px] ${subTextColor}`}>completed words</span>
             <span className={`font-bold ${themeConfig.textMain}`}>{completedWordsCount} Kata</span>
           </div>
           <div>
-            <span className={`block uppercase font-bold text-[9px] sm:text-[10px] ${subTextColor}`}>time spent</span>
+            <span className={`block uppercase font-bold text-[10px] ${subTextColor}`}>time</span>
             <span className={`font-bold ${themeConfig.textMain}`}>{elapsedSeconds}s</span>
           </div>
         </div>
       </div>
 
-      {/* Action Buttons: Full-Width di Layar HP */}
-      <div className="flex flex-col sm:flex-row justify-center items-center gap-3 pt-2 w-full">
+      <div className="flex justify-center items-center gap-4 pt-2">
         <button
           onClick={onReset}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 text-black font-bold rounded-2xl transition shadow-lg hover:brightness-110 active:scale-95 text-sm"
+          className="flex items-center gap-2 px-6 py-3 text-black font-bold rounded-xl transition shadow-lg hover:brightness-110 active:scale-95"
           style={{ backgroundColor: themeConfig.primary }}
         >
           <RotateCcw className="w-5 h-5" /> Latihan Lagi
@@ -340,15 +333,13 @@ export default function ResultView({ state, onReset }) {
 
         <button
           onClick={copyResultCardToClipboard}
-          className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3.5 ${
-            isLight ? 'bg-black/10 hover:bg-black/15 text-black border-black/10' : 'bg-white/10 hover:bg-white/20 text-white border-white/10'
-          } font-semibold rounded-2xl border transition text-sm active:scale-95`}
+          className={`flex items-center gap-2 px-5 py-3 ${isLight ? 'bg-black/10 hover:bg-black/15 text-black border-black/10' : 'bg-white/10 hover:bg-white/20 text-white border-white/10'} font-semibold rounded-xl border transition`}
           title="Copy Kartu Gambar ke Clipboard"
         >
           {isCopied ? (
             <>
-              <Check className="w-5 h-5 text-emerald-600" />
-              <span className="text-emerald-600 font-bold">Tersalin ke Clipboard!</span>
+              <Check className="w-5 h-5 text-emerald-500" />
+              <span className="text-emerald-500">Tersalin ke Clipboard!</span>
             </>
           ) : (
             <>

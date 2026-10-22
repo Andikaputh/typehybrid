@@ -8,12 +8,6 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-
-  /* Mencegah zoom & bounce saat double-tap pada mobile */
-  html {
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-  }
 }
 
 /* Font Monospace khusus untuk teks latihan, keyboard, dan statistik */
@@ -35,32 +29,4 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(226, 183, 20, 0.4);
-}
-
-/* Animasi Bottom Sheet Drawer */
-@keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@keyframes slide-in-from-bottom {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
-.animate-fade-in {
-  animation: fade-in 0.15s ease-out;
-}
-.animate-in.slide-in-from-bottom {
-  animation: slide-in-from-bottom 0.25s cubic-bezier(0.32, 0.72, 0, 1);
-}
-
-/* Mobile: Pastikan virtual keyboard HP tidak mendorong layout body */
-@media (max-width: 767px) {
-  html, body {
-    overflow-x: hidden;
-    overscroll-behavior: none;
-  }
-  /* Angkat area pengetikan ke atas agar tidak tertutup virtual keyboard */
-  .typing-focus-mobile {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
 }

@@ -8,18 +8,18 @@ export default function VisualKeyboard({ getNextChar, charErrors, themeConfig })
   const primaryColor = themeConfig?.primary || '#e2b714';
   const isLight = themeConfig?.isLight || false;
 
-  // Kelas adaptif berdasarkan tema (light / dark) — kontras tinggi
+  // Kelas adaptif berdasarkan tema (light / dark)
   const containerBg = isLight 
-    ? 'bg-black/5 border-black/10 text-[#282a2e]' 
+    ? 'bg-black/5 border-black/10 text-[#323437]' 
     : 'bg-black/20 border-white/5 text-white/80';
     
   const defaultKeyStyle = isLight 
-    ? 'bg-black/10 text-[#282a2e] border-black/15' 
+    ? 'bg-black/10 text-[#323437] border-black/10' 
     : 'bg-white/5 text-white/60 border-white/5';
 
   return (
     <div className={`${containerBg} p-4 rounded-2xl border space-y-3 max-w-3xl mx-auto transition-colors duration-300`}>
-      <div className={`flex justify-between items-center text-xs px-2 font-mono ${isLight ? 'text-[#282a2e]/75' : 'text-white/70'}`}>
+      <div className="flex justify-between items-center text-xs opacity-70 px-2 font-mono">
         <span className="flex items-center gap-1.5">
           <Keyboard className="w-4 h-4" /> Visual Keyboard Guide
         </span>
@@ -49,7 +49,7 @@ export default function VisualKeyboard({ getNextChar, charErrors, themeConfig })
                 };
               } else if (errCount > 2) {
                 keyStyle = isLight 
-                  ? 'bg-rose-200 text-rose-800 border-rose-300 font-semibold' 
+                  ? 'bg-rose-200 text-rose-800 border-rose-300' 
                   : 'bg-rose-950 text-rose-300 border-rose-800';
               }
 
