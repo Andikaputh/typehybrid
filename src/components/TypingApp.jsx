@@ -189,6 +189,9 @@ export default function TypingApp() {
             <span className="text-[10px] font-mono opacity-50 tracking-wider">
               tekan <kbd className={`px-1.5 py-0.5 rounded border ${isLight ? 'bg-black/5 border-black/10 text-black/80' : 'bg-white/10 border-white/10 text-white/80'}`}>Tab</kbd> untuk mengacak ulang
             </span>
+            <span className="text-[10px] font-mono opacity-50 tracking-wider">
+              <kbd className={`px-1.5 py-0.5 rounded border ${isLight ? 'bg-black/5 border-black/10 text-black/80' : 'bg-white/10 border-white/10 text-white/80'}`}>Ctrl</kbd> + <kbd className={`px-1.5 py-0.5 rounded border ${isLight ? 'bg-black/5 border-black/10 text-black/80' : 'bg-white/10 border-white/10 text-white/80'}`}>Backspace</kbd> untuk hapus kata
+            </span>
           </div>
         )}
 

@@ -392,6 +392,50 @@ export function useTypingEngine() {
     }
   };
 
+  // Ctrl + Backspace: hapus seluruh kata yang sedang diketik sekaligus.
+  // Event log memakai event 'delete' per karakter agar chart WPM per detik
+  // tetap memutar ulang riwayat ketikan dengan benar.
+  const handleDeleteWord = (now = Date.now()) => {
+    if (isFinished || !isStarted || !startTimeRef.current) return;
+
+    const t = now - startTimeRef.current;
+    const activeIndex = Math.max(0, typedWordsRef.current.length - 1);
+    const currentTyped = typedWordsRef.current[activeIndex] || '';
+
+    if (currentTyped.length === 0) {
+      // Kata aktif kosong -> kembali ke kata sebelumnya lalu kosongkan juga.
+      if (activeIndex === 0) return;
+      const prevWord = wordsRef.current[activeIndex - 1] || '';
+      const prevTyped = typedWordsRef.current[activeIndex - 1] || '';
+      if (prevTyped === prevWord || prevTyped.length === 0) return;
+
+      eventsRef.current.push({ t, type: 'uncommit' });
+      for (let i = 0; i < prevTyped.length; i++) {
+        eventsRef.current.push({ t, type: 'delete' });
+      }
+
+      const updated = typedWordsRef.current.slice(0, -1);
+      updated[activeIndex - 1] = '';
+      typedWordsRef.current = updated;
+      setTypedWords(updated);
+      setCurrentWordIdx(activeIndex - 1);
+      wordStartTimeRef.current = now;
+      playClickSound(false, soundEnabled, soundProfile);
+      return;
+    }
+
+    for (let i = 0; i < currentTyped.length; i++) {
+      eventsRef.current.push({ t, type: 'delete' });
+    }
+
+    const updated = [...typedWordsRef.current];
+    updated[activeIndex] = '';
+    typedWordsRef.current = updated;
+    setTypedWords(updated);
+    wordStartTimeRef.current = now;
+    playClickSound(false, soundEnabled, soundProfile);
+  };
+
   const handleSpace = (now = Date.now()) => {
     if (isFinished || !isStarted || !startTimeRef.current) return;
 
@@ -535,7 +579,12 @@ export function useTypingEngine() {
 
     if (e.key === 'Backspace') {
       e.preventDefault();
-      handleBackspace(now);
+      if (e.ctrlKey || e.metaKey || e.altKey) {
+        // Quick delete word: Ctrl/Alt/Cmd + Backspace
+        handleDeleteWord(now);
+      } else {
+        handleBackspace(now);
+      }
       return;
     }
 
